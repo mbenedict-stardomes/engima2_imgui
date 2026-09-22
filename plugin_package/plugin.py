@@ -41,12 +41,15 @@ def generate_channel_xml():
                         idx += 1
             xml += '    </bouquet>\n'
             
-    # 2. Fetch ALL channels (Alphabetical)
+    # 2. Fetch ALL channels (Alphabetical) and separate Terrestrial
     all_ref = eServiceReference('1:7:1:0:0:0:0:0:0:0:(type == 1) || (type == 17) || (type == 195) || (type == 25) ORDER BY name')
     all_list = serviceHandler.list(all_ref)
     if all_list is not None:
-        xml += '    <bouquet name="All Channels (A-Z)">\n'
+        all_channels_xml = []
+        terr_channels_xml = []
+        
         idx = 1
+        terr_idx = 1
         while True:
             channel_ref = all_list.getNext()
             if not channel_ref.valid():
@@ -56,10 +59,28 @@ def generate_channel_xml():
                 channel_name = info.getName(channel_ref) if info else channel_ref.getName()
                 if not channel_name: channel_name = "Unknown Channel"
                 channel_name = channel_name.replace('&', '&amp;').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
-                ref_str = channel_ref.toString().replace('&', '&amp;').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
-                xml += f'        <channel number="{idx}" name="{channel_name}" ref="{ref_str}" />\n'
+                
+                ref_str = channel_ref.toString()
+                safe_ref_str = ref_str.replace('&', '&amp;').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+                
+                # Every channel goes to the All Channels list
+                all_channels_xml.append(f'        <channel number="{idx}" name="{channel_name}" ref="{safe_ref_str}" />\n')
                 idx += 1
+                
+                # Check namespace for Terrestrial (DVB-T / DVB-T2 / ISDB-T) -> Starts with EEEE
+                parts = ref_str.split(':')
+                if len(parts) > 6 and parts[6].upper().startswith('EEEE'):
+                    terr_channels_xml.append(f'        <channel number="{terr_idx}" name="{channel_name}" ref="{safe_ref_str}" />\n')
+                    terr_idx += 1
+                    
+        xml += '    <bouquet name="All Channels (A-Z)">\n'
+        xml += "".join(all_channels_xml)
         xml += '    </bouquet>\n'
+        
+        if len(terr_channels_xml) > 0:
+            xml += '    <bouquet name="All Terrestrial (DVB-T/T2/ISDB-T)">\n'
+            xml += "".join(terr_channels_xml)
+            xml += '    </bouquet>\n'
 
     xml += "</bouquets>\n"
     
