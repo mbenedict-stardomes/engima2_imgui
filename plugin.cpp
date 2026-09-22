@@ -47,6 +47,12 @@ extern "C" void StartImGuiPlugin() {
     // Enable Keyboard Navigation for Remote Control mappings
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     
+    // Load native Enigma2 font for 1080p display
+    ImFont* font = io.Fonts->AddFontFromFileTTF("/usr/share/fonts/Roboto-Bold.ttf", 26.0f);
+    if (!font) {
+        printf("Failed to load Roboto-Bold.ttf, falling back to default.\n");
+    }
+    
     ImGui::StyleColorsDark();
 
     // Setup OpenGL ES 2.0 backend
@@ -77,7 +83,9 @@ extern "C" void StartImGuiPlugin() {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui::NewFrame();
 
-        MainMenu_Render();
+        if (!MainMenu_Render()) {
+            keep_running = false;
+        }
 
         ImGui::Render();
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);

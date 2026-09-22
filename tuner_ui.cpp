@@ -41,14 +41,8 @@ void TunerUI_Init() {
 }
 
 void TunerUI_Render() {
-    ImGui::SetNextWindowPos(ImVec2(100, 100), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
-    
-    ImGui::Begin("Tuner Configuration & Signal Finder", nullptr, ImGuiWindowFlags_NoCollapse);
-    
     if (g_satellites.empty()) {
         ImGui::TextColored(ImVec4(1, 0, 0, 1), "Error: satellites.xml not loaded.");
-        ImGui::End();
         return;
     }
     
@@ -130,17 +124,15 @@ void TunerUI_Render() {
     ImGui::PopStyleColor();
     
     ImGui::Spacing();
-    if (ImGui::Button("Start Blindscan", ImVec2(150, 40))) {
+    if (ImGui::Button("Start Blindscan", ImVec2(200, 50))) {
         // Do blindscan
     }
     ImGui::SameLine();
-    if (ImGui::Button("Manual Scan", ImVec2(150, 40))) {
+    if (ImGui::Button("Manual Scan", ImVec2(200, 50))) {
         // Do manual scan
     }
     ImGui::SameLine();
-    if (ImGui::Button("Auto Scan", ImVec2(150, 40))) {
+    if (ImGui::Button("Auto Scan", ImVec2(200, 50))) {
         // Do auto scan
     }
-    
-    ImGui::End();
 }

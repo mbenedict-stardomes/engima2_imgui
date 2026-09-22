@@ -10,45 +10,58 @@ enum MenuState {
 };
 
 static MenuState g_currentState = MENU_HOME;
+static int home_selected_idx = 0;
 
 void MainMenu_Init() {
-    // We already initialize TunerUI in plugin.cpp, but we can do setup here
 }
 
 void RenderHome() {
-    ImVec2 buttonSize(300, 100);
-    
-    // Center the buttons
     ImVec2 windowSize = ImGui::GetWindowSize();
-    ImGui::SetCursorPos(ImVec2((windowSize.x - buttonSize.x) * 0.5f, windowSize.y * 0.3f));
-
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
     
-    if (ImGui::Button("Tuner Setup", buttonSize)) {
-        g_currentState = MENU_TUNER;
+    // Classic Enigma2 Center Dialog
+    ImVec2 dialogSize(800, 600);
+    ImGui::SetCursorPos(ImVec2((windowSize.x - dialogSize.x) * 0.5f, (windowSize.y - dialogSize.y) * 0.5f));
+    
+    ImGui::BeginChild("HomeMenuDialog", dialogSize, true, ImGuiWindowFlags_NoScrollbar);
+    
+    // Header
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.2f, 0.2f, 1.0f));
+    ImGui::Text("Main Menu");
+    ImGui::PopStyleColor();
+    ImGui::Separator();
+    ImGui::Spacing();
+    
+    const char* items[] = { "Tuner Setup / Signal Finder", "Network Configuration", "System Settings", "Standby / Restart" };
+    for (int i = 0; i < 4; i++) {
+        bool is_selected = (home_selected_idx == i);
+        if (ImGui::Selectable(items[i], is_selected, 0, ImVec2(0, 50))) {
+            home_selected_idx = i;
+            if (i == 0) g_currentState = MENU_TUNER;
+            if (i == 1) g_currentState = MENU_NETWORK;
+            if (i == 2) g_currentState = MENU_SYSTEM;
+        }
+        if (is_selected) {
+            ImGui::SetItemDefaultFocus();
+        }
     }
     
-    ImGui::SetCursorPosX((windowSize.x - buttonSize.x) * 0.5f);
-    ImGui::Spacing(); ImGui::Spacing();
-    
-    if (ImGui::Button("Network Configuration", buttonSize)) {
-        g_currentState = MENU_NETWORK;
-    }
-    
-    ImGui::SetCursorPosX((windowSize.x - buttonSize.x) * 0.5f);
-    ImGui::Spacing(); ImGui::Spacing();
-    
-    if (ImGui::Button("System Settings", buttonSize)) {
-        g_currentState = MENU_SYSTEM;
-    }
-    
-    ImGui::PopStyleVar();
+    ImGui::EndChild();
 }
 
-void MainMenu_Render() {
+bool MainMenu_Render() {
+    bool keep_running = true;
     ImGuiIO& io = ImGui::GetIO();
     
-    // Create a full-screen window
+    // Global Back/Exit handler
+    if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+        if (g_currentState != MENU_HOME) {
+            g_currentState = MENU_HOME;
+        } else {
+            keep_running = false; // Tell plugin.cpp to exit
+        }
+    }
+    
+    // Create a full-screen background
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(io.DisplaySize);
     
@@ -59,47 +72,45 @@ void MainMenu_Render() {
                              ImGuiWindowFlags_NoSavedSettings |
                              ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-    // Use a semi-transparent dark background for the "GlassHD" look over the TV stream
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.05f, 0.05f, 0.08f, 0.85f));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.70f)); // Darker background
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     
     ImGui::Begin("Enigma2 Main Menu", nullptr, flags);
     
-    // Header
-    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]); // TODO: Load larger font
-    ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "ENIGMA2 IMGUI SYSTEM");
+    // Header Logo
+    ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "ENIGMA2 IMGUI PROTOTYPE");
     ImGui::Separator();
-    ImGui::PopFont();
-    ImGui::Spacing(); ImGui::Spacing();
-
-    // Render current state
+    
     if (g_currentState == MENU_HOME) {
         RenderHome();
     } 
+    else if (g_currentState == MENU_TUNER) {
+        // Embed the Tuner UI exactly in the center
+        ImVec2 tunerSize(1200, 700);
+        ImGui::SetCursorPos(ImVec2((io.DisplaySize.x - tunerSize.x) * 0.5f, (io.DisplaySize.y - tunerSize.y) * 0.5f));
+        ImGui::BeginChild("TunerChild", tunerSize, true, ImGuiWindowFlags_NoScrollbar);
+        TunerUI_Render();
+        ImGui::EndChild();
+    }
     else {
-        // Shared back button for all sub-menus
-        if (ImGui::Button("< Back to Home", ImVec2(200, 50))) {
-            g_currentState = MENU_HOME;
-        }
-        ImGui::Spacing();
-        
-        if (g_currentState == MENU_NETWORK) {
-            ImGui::Text("Network configuration UI coming soon...");
-        }
-        else if (g_currentState == MENU_SYSTEM) {
-            ImGui::Text("System settings UI coming soon...");
-        }
+        ImGui::Text("Coming soon...");
     }
 
-    // Footer / Infobar
-    ImGui::SetCursorPosY(io.DisplaySize.y - 50);
+    // Classic Enigma2 Footer (Color Buttons)
+    ImGui::SetCursorPosY(io.DisplaySize.y - 60);
     ImGui::Separator();
-    ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Navigation: D-Pad | Select: OK | Exit: EXIT/POWER");
+    
+    // Render color buttons
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1)); ImGui::Text("  Red  "); ImGui::PopStyleColor(); ImGui::SameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 1, 0, 1)); ImGui::Text(" Green "); ImGui::PopStyleColor(); ImGui::SameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 0, 1)); ImGui::Text(" Yellow"); ImGui::PopStyleColor(); ImGui::SameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 0, 1, 1)); ImGui::Text(" Blue  "); ImGui::PopStyleColor(); ImGui::SameLine();
+    
+    ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "     | Navigation: D-Pad | Select: OK | Exit: EXIT/POWER");
 
     ImGui::End();
+    ImGui::PopStyleVar();
     ImGui::PopStyleColor();
     
-    // Render sub-menus as independent floating windows OVER the full-screen background
-    if (g_currentState == MENU_TUNER) {
-        TunerUI_Render();
-    }
+    return keep_running;
 }

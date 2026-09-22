@@ -89,8 +89,8 @@ bool Evdev_Poll_Plugin() {
                 io.AddKeyEvent(imgui_key, is_down);
             }
             
-            // Exit hook for plugin (Exit button or Power button)
-            if ((ev.code == KEY_POWER || ev.code == KEY_EXIT || ev.code == KEY_ESC) && ev.value == 1) {
+            // Emergency Exit ONLY on Power Button. Let ImGui handle ESC/EXIT natively.
+            if (ev.code == KEY_POWER && ev.value == 1) {
                 keep_running = false;
             }
         }
