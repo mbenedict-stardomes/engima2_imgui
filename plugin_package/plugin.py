@@ -11,6 +11,7 @@ def generate_channel_xml():
     serviceHandler = eServiceCenter.getInstance()
     tv_bouquets_ref = eServiceReference('1:7:1:0:0:0:0:0:0:0:(type == 1) || (type == 17) || (type == 195) || (type == 25) FROM BOUQUET "bouquets.tv" ORDER BY bouquet')
     
+    # 1. Fetch standard bouquets (Favourites)
     bouquet_list = serviceHandler.list(tv_bouquets_ref)
     if bouquet_list is not None:
         while True:
@@ -31,18 +32,35 @@ def generate_channel_xml():
                     if not channel_ref.valid():
                         break
                     if not (channel_ref.flags & eServiceReference.isMarker):
-                        # CORRECT WAY TO GET ENIGMA2 CHANNEL NAME!
                         info = serviceHandler.info(channel_ref)
                         channel_name = info.getName(channel_ref) if info else channel_ref.getName()
-                        
-                        if not channel_name:
-                            channel_name = "Unknown Channel"
-                            
+                        if not channel_name: channel_name = "Unknown Channel"
                         channel_name = channel_name.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
                         ref_str = channel_ref.toString()
                         xml += f'        <channel number="{idx}" name="{channel_name}" ref="{ref_str}" />\n'
                         idx += 1
             xml += '    </bouquet>\n'
+            
+    # 2. Fetch ALL channels (Alphabetical)
+    all_ref = eServiceReference('1:7:1:0:0:0:0:0:0:0:(type == 1) || (type == 17) || (type == 195) || (type == 25) ORDER BY name')
+    all_list = serviceHandler.list(all_ref)
+    if all_list is not None:
+        xml += '    <bouquet name="All Channels (A-Z)">\n'
+        idx = 1
+        while True:
+            channel_ref = all_list.getNext()
+            if not channel_ref.valid():
+                break
+            if not (channel_ref.flags & eServiceReference.isMarker):
+                info = serviceHandler.info(channel_ref)
+                channel_name = info.getName(channel_ref) if info else channel_ref.getName()
+                if not channel_name: channel_name = "Unknown Channel"
+                channel_name = channel_name.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+                ref_str = channel_ref.toString()
+                xml += f'        <channel number="{idx}" name="{channel_name}" ref="{ref_str}" />\n'
+                idx += 1
+        xml += '    </bouquet>\n'
+
     xml += "</bouquets>\n"
     
     # Save a debug copy just to be sure!
