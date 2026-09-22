@@ -35,8 +35,8 @@ def generate_channel_xml():
                         info = serviceHandler.info(channel_ref)
                         channel_name = info.getName(channel_ref) if info else channel_ref.getName()
                         if not channel_name: channel_name = "Unknown Channel"
-                        channel_name = channel_name.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
-                        ref_str = channel_ref.toString()
+                        channel_name = channel_name.replace('&', '&amp;').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+                        ref_str = channel_ref.toString().replace('&', '&amp;').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
                         xml += f'        <channel number="{idx}" name="{channel_name}" ref="{ref_str}" />\n'
                         idx += 1
             xml += '    </bouquet>\n'
@@ -66,8 +66,8 @@ def generate_channel_xml():
                         info = serviceHandler.info(channel_ref)
                         channel_name = info.getName(channel_ref) if info else channel_ref.getName()
                         if not channel_name: channel_name = "Unknown Channel"
-                        channel_name = channel_name.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
-                        ref_str = channel_ref.toString()
+                        channel_name = channel_name.replace('&', '&amp;').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+                        ref_str = channel_ref.toString().replace('&', '&amp;').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
                         xml += f'        <channel number="{idx}" name="{channel_name}" ref="{ref_str}" />\n'
                         idx += 1
             xml += '    </bouquet>\n'
@@ -86,8 +86,8 @@ def generate_channel_xml():
                 info = serviceHandler.info(channel_ref)
                 channel_name = info.getName(channel_ref) if info else channel_ref.getName()
                 if not channel_name: channel_name = "Unknown Channel"
-                channel_name = channel_name.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
-                ref_str = channel_ref.toString()
+                channel_name = channel_name.replace('&', '&amp;').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+                ref_str = channel_ref.toString().replace('&', '&amp;').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
                 xml += f'        <channel number="{idx}" name="{channel_name}" ref="{ref_str}" />\n'
                 idx += 1
         xml += '    </bouquet>\n'
