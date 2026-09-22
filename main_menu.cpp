@@ -2,9 +2,11 @@
 #include "imgui/imgui.h"
 #include "tuner_ui.h"
 #include "channel_list.h"
+#include "infobar.h"
 
 enum MenuState {
     MENU_HOME,
+    MENU_INFOBAR,
     MENU_TUNER,
     MENU_CHANNELS,
     MENU_NETWORK,
@@ -17,6 +19,7 @@ static bool g_trigger_exit = false;
 
 void MainMenu_Init() {
     ChannelList_Init();
+    Infobar_Init();
 }
 
 void RenderHome() {
@@ -35,8 +38,8 @@ void RenderHome() {
     ImGui::Separator();
     ImGui::Spacing();
     
-    const char* items[] = { "Live TV Channel List", "Tuner Setup / Signal Finder", "Network Configuration", "System Settings", "Standby / Restart / Exit" };
-    for (int i = 0; i < 5; i++) {
+    const char* items[] = { "Live TV Channel List", "Show GlassHD Infobar", "Tuner Setup / Signal Finder", "Network Configuration", "System Settings", "Standby / Restart / Exit" };
+    for (int i = 0; i < 6; i++) {
         // If the window is appearing (e.g. startup or returning from Tuner), force focus to the active item
         if (home_selected_idx == i && ImGui::IsWindowAppearing()) {
             ImGui::SetKeyboardFocusHere();
@@ -45,10 +48,11 @@ void RenderHome() {
         // Pass 'false' for selected state so we don't get a persistent second blue bar
         if (ImGui::Selectable(items[i], false, 0, ImVec2(0, 50))) {
             if (i == 0) g_currentState = MENU_CHANNELS;
-            if (i == 1) g_currentState = MENU_TUNER;
-            if (i == 2) g_currentState = MENU_NETWORK;
-            if (i == 3) g_currentState = MENU_SYSTEM;
-            if (i == 4) g_trigger_exit = true; // Trigger exit from menu item!
+            if (i == 1) g_currentState = MENU_INFOBAR;
+            if (i == 2) g_currentState = MENU_TUNER;
+            if (i == 3) g_currentState = MENU_NETWORK;
+            if (i == 4) g_currentState = MENU_SYSTEM;
+            if (i == 5) g_trigger_exit = true; // Trigger exit from menu item!
         }
         
         // Track the currently focused item via D-Pad so we can restore it later
@@ -100,6 +104,13 @@ bool MainMenu_Render() {
     if (g_currentState == MENU_HOME) {
         RenderHome();
     } 
+    else if (g_currentState == MENU_INFOBAR) {
+        Infobar_Render();
+        // If they press EXIT, go back to HOME
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+            g_currentState = MENU_HOME;
+        }
+    }
     else if (g_currentState == MENU_TUNER) {
         // Embed the Tuner UI exactly in the center
         ImVec2 tunerSize(1200, 700);
