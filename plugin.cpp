@@ -17,9 +17,19 @@ uint64_t get_time_ms() {
     return (uint64_t)(ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
 }
 
-extern "C" void StartImGuiPlugin() {
+char g_selected_service_ref[512] = {0};
+bool g_exit_and_play = false;
+
+extern "C" void SetChannelDataXML(const char* xml_data) {
+    ChannelList_LoadXML(xml_data);
+}
+
+extern "C" const char* StartImGuiPlugin() {
+    g_selected_service_ref[0] = '\0';
+    g_exit_and_play = false;
+
     EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    if (!eglInitialize(display, NULL, NULL)) return;
+    if (!eglInitialize(display, NULL, NULL)) return "";
 
     EGLint attr[] = {
         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
@@ -87,6 +97,10 @@ extern "C" void StartImGuiPlugin() {
             keep_running = false;
         }
 
+        if (g_exit_and_play) {
+            keep_running = false;
+        }
+
         ImGui::Render();
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -113,4 +127,6 @@ extern "C" void StartImGuiPlugin() {
     eglDestroySurface(display, surface);
     eglDestroyContext(display, context);
     eglTerminate(display);
+
+    return g_selected_service_ref;
 }

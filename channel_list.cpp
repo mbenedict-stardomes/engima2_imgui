@@ -1,5 +1,6 @@
 #include "channel_list.h"
 #include "imgui/imgui.h"
+#include "pugixml.hpp"
 #include <vector>
 #include <string>
 
@@ -12,6 +13,7 @@ struct EPGEvent {
 struct Channel {
     int number;
     std::string name;
+    std::string ref;
     EPGEvent current_epg;
     EPGEvent next_epg;
 };
@@ -25,40 +27,63 @@ static std::vector<Bouquet> g_bouquets;
 static int current_bouquet_idx = 0;
 static int current_channel_idx = 0;
 
-void ChannelList_Init() {
-    if (!g_bouquets.empty()) return;
-    
-    // Mock Data
-    Bouquet fav;
-    fav.name = "Favourites (TV)";
-    fav.channels.push_back({1, "BBC One HD", 
-        {"19:00 - 20:00", "BBC News at Six", "National and international news."},
-        {"20:00 - 21:00", "The Graham Norton Show", "Talk show featuring celebrity guests."}});
-    fav.channels.push_back({2, "BBC Two HD", 
-        {"19:30 - 20:30", "Mastermind", "Classic quiz show."},
-        {"20:30 - 21:30", "Top Gear", "Motoring magazine."}});
-    fav.channels.push_back({3, "ITV 1 HD", 
-        {"19:00 - 19:30", "Emmerdale", "Soap opera."},
-        {"19:30 - 20:00", "Coronation Street", "Soap opera."}});
-    fav.channels.push_back({4, "Channel 4 HD", 
-        {"19:00 - 20:00", "Channel 4 News", "News and current affairs."},
-        {"20:00 - 21:00", "The Great British Bake Off", "Baking competition."}});
-    fav.channels.push_back({5, "Sky Sports Main Event", 
-        {"18:00 - 21:00", "Live Premier League", "Arsenal vs Chelsea."},
-        {"21:00 - 22:00", "Post Match Analysis", "Review of the game."}});
-        
-    Bouquet movies;
-    movies.name = "Movies";
-    for (int i=1; i<=10; i++) {
-        char buf[64];
-        snprintf(buf, sizeof(buf), "Sky Cinema %d", i);
-        movies.channels.push_back({100+i, buf, 
-            {"20:00 - 22:00", "Blockbuster Movie", "Action packed thriller."},
-            {"22:00 - 00:00", "Late Night Comedy", "Stand-up special."}});
+extern char g_selected_service_ref[512];
+extern bool g_exit_and_play;
+
+void ChannelList_LoadXML(const char* xml_data) {
+    pugi::xml_document doc;
+    pugi::xml_parse_result result = doc.load_string(xml_data);
+    if (!result) {
+        printf("Failed to parse channel XML from Python: %s\n", result.description());
+        return;
     }
     
-    g_bouquets.push_back(fav);
-    g_bouquets.push_back(movies);
+    g_bouquets.clear();
+    
+    for (pugi::xml_node bouquet_node : doc.child("bouquets").children("bouquet")) {
+        Bouquet bq;
+        bq.name = bouquet_node.attribute("name").value();
+        
+        for (pugi::xml_node channel_node : bouquet_node.children("channel")) {
+            Channel ch;
+            ch.number = channel_node.attribute("number").as_int();
+            ch.name = channel_node.attribute("name").value();
+            ch.ref = channel_node.attribute("ref").value();
+            
+            // For now, mock EPG
+            ch.current_epg = {"NOW", "Program Info", "Description of current show."};
+            ch.next_epg = {"NEXT", "Next Program Info", "Description of next show."};
+            
+            bq.channels.push_back(ch);
+        }
+        g_bouquets.push_back(bq);
+    }
+    
+    current_bouquet_idx = 0;
+    current_channel_idx = 0;
+}
+
+void ChannelList_Init() {
+    // We only load mock data if g_bouquets is empty (e.g. testing without Python)
+    if (!g_bouquets.empty()) return;
+    
+    const char* mock_xml = R"(
+    <bouquets>
+        <bouquet name="Favourites (TV)">
+            <channel number="1" name="BBC One HD" ref="1:0:1:1:1:1000:0:0:0:0:" />
+            <channel number="2" name="BBC Two HD" ref="1:0:1:2:1:1000:0:0:0:0:" />
+            <channel number="3" name="ITV 1 HD" ref="1:0:1:3:1:1000:0:0:0:0:" />
+            <channel number="4" name="Channel 4 HD" ref="1:0:1:4:1:1000:0:0:0:0:" />
+            <channel number="5" name="Sky Sports" ref="1:0:1:5:1:1000:0:0:0:0:" />
+        </bouquet>
+        <bouquet name="Movies">
+            <channel number="101" name="Sky Cinema 1" ref="1:0:1:6:1:1000:0:0:0:0:" />
+            <channel number="102" name="Sky Cinema 2" ref="1:0:1:7:1:1000:0:0:0:0:" />
+        </bouquet>
+    </bouquets>
+    )";
+    
+    ChannelList_LoadXML(mock_xml);
 }
 
 void ChannelList_Render() {
@@ -87,13 +112,19 @@ void ChannelList_Render() {
         snprintf(label, sizeof(label), "%3d   %s", bq.channels[i].number, bq.channels[i].name.c_str());
         
         if (ImGui::Selectable(label, false, 0, ImVec2(0, 40))) {
-            // When OK is pressed, we could switch channel and close the menu
-            // For now just select
+            // Mouse click support
             current_channel_idx = i;
+            strncpy(g_selected_service_ref, bq.channels[i].ref.c_str(), 511);
+            g_exit_and_play = true;
         }
         
         if (ImGui::IsItemFocused()) {
             current_channel_idx = i;
+            // Physical remote OK button support
+            if (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_Space)) {
+                strncpy(g_selected_service_ref, bq.channels[i].ref.c_str(), 511);
+                g_exit_and_play = true;
+            }
         }
     }
     ImGui::EndChild();
