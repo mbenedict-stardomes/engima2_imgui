@@ -11,7 +11,7 @@ enum MenuState {
 
 static MenuState g_currentState = MENU_HOME;
 static int home_selected_idx = 0;
-static bool show_exit_confirm = false;
+static bool g_trigger_exit = false;
 
 void MainMenu_Init() {
 }
@@ -32,7 +32,7 @@ void RenderHome() {
     ImGui::Separator();
     ImGui::Spacing();
     
-    const char* items[] = { "Tuner Setup / Signal Finder", "Network Configuration", "System Settings", "Standby / Restart" };
+    const char* items[] = { "Tuner Setup / Signal Finder", "Network Configuration", "System Settings", "Standby / Restart / Exit" };
     for (int i = 0; i < 4; i++) {
         bool is_selected = (home_selected_idx == i);
         
@@ -46,6 +46,7 @@ void RenderHome() {
             if (i == 0) g_currentState = MENU_TUNER;
             if (i == 1) g_currentState = MENU_NETWORK;
             if (i == 2) g_currentState = MENU_SYSTEM;
+            if (i == 3) g_trigger_exit = true; // Trigger exit from menu item!
         }
     }
     
@@ -58,12 +59,14 @@ bool MainMenu_Render() {
     
     // Global Back/Exit handler
     if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
-        if (show_exit_confirm) {
-            show_exit_confirm = false;
-        } else if (g_currentState != MENU_HOME) {
-            g_currentState = MENU_HOME;
-        } else {
-            show_exit_confirm = true; // Trigger confirmation popup
+        // If the popup is open, ESC closes it (handled inside BeginPopupModal)
+        // Otherwise, handle Back/Exit navigation
+        if (!ImGui::IsPopupOpen("Exit Confirmation")) {
+            if (g_currentState != MENU_HOME) {
+                g_currentState = MENU_HOME;
+            } else {
+                g_trigger_exit = true;
+            }
         }
     }
     
@@ -114,9 +117,10 @@ bool MainMenu_Render() {
     
     ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "     | Navigation: D-Pad | Select: OK | Exit: EXIT/POWER");
 
-    // Exit Confirmation Popup
-    if (show_exit_confirm) {
+    // Process Exit Trigger ONCE
+    if (g_trigger_exit) {
         ImGui::OpenPopup("Exit Confirmation");
+        g_trigger_exit = false; // Reset trigger
     }
 
     // Center the popup
@@ -126,11 +130,12 @@ bool MainMenu_Render() {
     if (ImGui::BeginPopupModal("Exit Confirmation", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("Are you sure you want to exit to Enigma2 Live TV?\n\n");
         ImGui::Separator();
-
+        
+        ImGui::SetItemDefaultFocus();
         if (ImGui::Button("Cancel", ImVec2(150, 50)) || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
-            show_exit_confirm = false;
             ImGui::CloseCurrentPopup();
         }
+        
         ImGui::SameLine();
         
         // Make OK button red
