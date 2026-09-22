@@ -67,21 +67,20 @@ void ChannelList_Init() {
     // We only load mock data if g_bouquets is empty (e.g. testing without Python)
     if (!g_bouquets.empty()) return;
     
-    const char* mock_xml = R"(
-    <bouquets>
-        <bouquet name="Favourites (TV)">
-            <channel number="1" name="BBC One HD" ref="1:0:1:1:1:1000:0:0:0:0:" />
-            <channel number="2" name="BBC Two HD" ref="1:0:1:2:1:1000:0:0:0:0:" />
-            <channel number="3" name="ITV 1 HD" ref="1:0:1:3:1:1000:0:0:0:0:" />
-            <channel number="4" name="Channel 4 HD" ref="1:0:1:4:1:1000:0:0:0:0:" />
-            <channel number="5" name="Sky Sports" ref="1:0:1:5:1:1000:0:0:0:0:" />
-        </bouquet>
-        <bouquet name="Movies">
-            <channel number="101" name="Sky Cinema 1" ref="1:0:1:6:1:1000:0:0:0:0:" />
-            <channel number="102" name="Sky Cinema 2" ref="1:0:1:7:1:1000:0:0:0:0:" />
-        </bouquet>
-    </bouquets>
-    )";
+    const char* mock_xml = 
+    "<bouquets>\n"
+    "    <bouquet name=\"Favourites (TV)\">\n"
+    "        <channel number=\"1\" name=\"BBC One HD\" ref=\"1:0:1:1:1:1000:0:0:0:0:\" />\n"
+    "        <channel number=\"2\" name=\"BBC Two HD\" ref=\"1:0:1:2:1:1000:0:0:0:0:\" />\n"
+    "        <channel number=\"3\" name=\"ITV 1 HD\" ref=\"1:0:1:3:1:1000:0:0:0:0:\" />\n"
+    "        <channel number=\"4\" name=\"Channel 4 HD\" ref=\"1:0:1:4:1:1000:0:0:0:0:\" />\n"
+    "        <channel number=\"5\" name=\"Sky Sports\" ref=\"1:0:1:5:1:1000:0:0:0:0:\" />\n"
+    "    </bouquet>\n"
+    "    <bouquet name=\"Movies\">\n"
+    "        <channel number=\"101\" name=\"Sky Cinema 1\" ref=\"1:0:1:6:1:1000:0:0:0:0:\" />\n"
+    "        <channel number=\"102\" name=\"Sky Cinema 2\" ref=\"1:0:1:7:1:1000:0:0:0:0:\" />\n"
+    "    </bouquet>\n"
+    "</bouquets>\n";
     
     ChannelList_LoadXML(mock_xml);
 }

@@ -10,6 +10,7 @@
 #include "main_menu.h"
 #include "tuner_ui.h"
 #include "evdev_input.h"
+#include "channel_list.h"
 
 uint64_t get_time_ms() {
     struct timespec ts;
