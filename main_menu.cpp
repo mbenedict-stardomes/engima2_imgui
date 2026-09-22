@@ -34,19 +34,22 @@ void RenderHome() {
     
     const char* items[] = { "Tuner Setup / Signal Finder", "Network Configuration", "System Settings", "Standby / Restart / Exit" };
     for (int i = 0; i < 4; i++) {
-        bool is_selected = (home_selected_idx == i);
-        
         // If the window is appearing (e.g. startup or returning from Tuner), force focus to the active item
-        if (is_selected && ImGui::IsWindowAppearing()) {
+        if (home_selected_idx == i && ImGui::IsWindowAppearing()) {
             ImGui::SetKeyboardFocusHere();
         }
 
-        if (ImGui::Selectable(items[i], is_selected, 0, ImVec2(0, 50))) {
-            home_selected_idx = i;
+        // Pass 'false' for selected state so we don't get a persistent second blue bar
+        if (ImGui::Selectable(items[i], false, 0, ImVec2(0, 50))) {
             if (i == 0) g_currentState = MENU_TUNER;
             if (i == 1) g_currentState = MENU_NETWORK;
             if (i == 2) g_currentState = MENU_SYSTEM;
             if (i == 3) g_trigger_exit = true; // Trigger exit from menu item!
+        }
+        
+        // Track the currently focused item via D-Pad so we can restore it later
+        if (ImGui::IsItemFocused()) {
+            home_selected_idx = i;
         }
     }
     
