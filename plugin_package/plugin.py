@@ -17,7 +17,9 @@ def generate_channel_xml():
             bouquet_ref = bouquet_list.getNext()
             if not bouquet_ref.valid():
                 break
-            bouquet_name = bouquet_ref.getName()
+                
+            info = serviceHandler.info(bouquet_ref)
+            bouquet_name = info.getName(bouquet_ref) if info else bouquet_ref.getName()
             bouquet_name = bouquet_name.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
             xml += f'    <bouquet name="{bouquet_name}">\n'
             
@@ -29,13 +31,27 @@ def generate_channel_xml():
                     if not channel_ref.valid():
                         break
                     if not (channel_ref.flags & eServiceReference.isMarker):
-                        channel_name = channel_ref.getName()
-                        channel_name = channel_name.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+                        # CORRECT WAY TO GET ENIGMA2 CHANNEL NAME!
+                        info = serviceHandler.info(channel_ref)
+                        channel_name = info.getName(channel_ref) if info else channel_ref.getName()
+                        
+                        if not channel_name:
+                            channel_name = "Unknown Channel"
+                            
+                        channel_name = channel_name.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
                         ref_str = channel_ref.toString()
                         xml += f'        <channel number="{idx}" name="{channel_name}" ref="{ref_str}" />\n'
                         idx += 1
             xml += '    </bouquet>\n'
     xml += "</bouquets>\n"
+    
+    # Save a debug copy just to be sure!
+    try:
+        with open("/tmp/imgui_channels.xml", "w") as f:
+            f.write(xml)
+    except:
+        pass
+        
     return xml
 
 g_imgui_running = False
@@ -124,6 +140,13 @@ class ImGuiHostScreen(Screen):
             if g_selected_ref:
                 print(f"[ImGui] Changing channel to: {g_selected_ref}")
                 self.session.nav.playService(eServiceReference(g_selected_ref))
+                
+                # Force Enigma2 to drop back to Live TV by closing underlying menus (like PluginBrowser)
+                try:
+                    for dialog in self.session.dialog_stack:
+                        dialog.close()
+                except Exception as e:
+                    print(f"[ImGui] Failed to close background menus: {e}")
 
 def main(session, **kwargs):
     session.open(ImGuiHostScreen)
