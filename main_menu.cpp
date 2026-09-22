@@ -11,6 +11,7 @@ enum MenuState {
 
 static MenuState g_currentState = MENU_HOME;
 static int home_selected_idx = 0;
+static bool show_exit_confirm = false;
 
 void MainMenu_Init() {
 }
@@ -34,14 +35,17 @@ void RenderHome() {
     const char* items[] = { "Tuner Setup / Signal Finder", "Network Configuration", "System Settings", "Standby / Restart" };
     for (int i = 0; i < 4; i++) {
         bool is_selected = (home_selected_idx == i);
+        
+        // If the window is appearing (e.g. startup or returning from Tuner), force focus to the active item
+        if (is_selected && ImGui::IsWindowAppearing()) {
+            ImGui::SetKeyboardFocusHere();
+        }
+
         if (ImGui::Selectable(items[i], is_selected, 0, ImVec2(0, 50))) {
             home_selected_idx = i;
             if (i == 0) g_currentState = MENU_TUNER;
             if (i == 1) g_currentState = MENU_NETWORK;
             if (i == 2) g_currentState = MENU_SYSTEM;
-        }
-        if (is_selected) {
-            ImGui::SetItemDefaultFocus();
         }
     }
     
@@ -54,10 +58,12 @@ bool MainMenu_Render() {
     
     // Global Back/Exit handler
     if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
-        if (g_currentState != MENU_HOME) {
+        if (show_exit_confirm) {
+            show_exit_confirm = false;
+        } else if (g_currentState != MENU_HOME) {
             g_currentState = MENU_HOME;
         } else {
-            keep_running = false; // Tell plugin.cpp to exit
+            show_exit_confirm = true; // Trigger confirmation popup
         }
     }
     
@@ -107,6 +113,37 @@ bool MainMenu_Render() {
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 0, 1, 1)); ImGui::Text(" Blue  "); ImGui::PopStyleColor(); ImGui::SameLine();
     
     ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "     | Navigation: D-Pad | Select: OK | Exit: EXIT/POWER");
+
+    // Exit Confirmation Popup
+    if (show_exit_confirm) {
+        ImGui::OpenPopup("Exit Confirmation");
+    }
+
+    // Center the popup
+    ImVec2 center(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f);
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    
+    if (ImGui::BeginPopupModal("Exit Confirmation", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Are you sure you want to exit to Enigma2 Live TV?\n\n");
+        ImGui::Separator();
+
+        if (ImGui::Button("Cancel", ImVec2(150, 50)) || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+            show_exit_confirm = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        
+        // Make OK button red
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+        if (ImGui::Button("Exit", ImVec2(150, 50))) {
+            keep_running = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::PopStyleColor(2);
+        
+        ImGui::EndPopup();
+    }
 
     ImGui::End();
     ImGui::PopStyleVar();

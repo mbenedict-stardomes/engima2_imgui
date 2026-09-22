@@ -50,6 +50,10 @@ void TunerUI_Render() {
     ImGui::Separator();
     ImGui::Spacing();
     
+    if (ImGui::IsWindowAppearing()) {
+        ImGui::SetKeyboardFocusHere();
+    }
+    
     // Satellite Combo
     const char* preview_sat = g_satellites[current_sat_idx].name.c_str();
     if (ImGui::BeginCombo("Satellite", preview_sat)) {
