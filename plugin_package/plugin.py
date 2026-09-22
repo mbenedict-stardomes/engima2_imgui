@@ -41,38 +41,7 @@ def generate_channel_xml():
                         idx += 1
             xml += '    </bouquet>\n'
             
-    # 2. Fetch Satellites (Tuners)
-    sat_ref = eServiceReference('1:7:2:0:0:0:0:0:0:0:(type == 1) || (type == 17) || (type == 195) || (type == 25) FROM SATELLITES ORDER BY satellitePosition')
-    sat_list = serviceHandler.list(sat_ref)
-    if sat_list is not None:
-        while True:
-            folder_ref = sat_list.getNext()
-            if not folder_ref.valid():
-                break
-            
-            info = serviceHandler.info(folder_ref)
-            folder_name = info.getName(folder_ref) if info else folder_ref.getName()
-            folder_name = f"[Sat] {folder_name}".replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
-            xml += f'    <bouquet name="{folder_name}">\n'
-            
-            channel_list = serviceHandler.list(folder_ref)
-            if channel_list is not None:
-                idx = 1
-                while True:
-                    channel_ref = channel_list.getNext()
-                    if not channel_ref.valid():
-                        break
-                    if not (channel_ref.flags & eServiceReference.isMarker):
-                        info = serviceHandler.info(channel_ref)
-                        channel_name = info.getName(channel_ref) if info else channel_ref.getName()
-                        if not channel_name: channel_name = "Unknown Channel"
-                        channel_name = channel_name.replace('&', '&amp;').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
-                        ref_str = channel_ref.toString().replace('&', '&amp;').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
-                        xml += f'        <channel number="{idx}" name="{channel_name}" ref="{ref_str}" />\n'
-                        idx += 1
-            xml += '    </bouquet>\n'
-            
-    # 3. Fetch ALL channels (Alphabetical)
+    # 2. Fetch ALL channels (Alphabetical)
     all_ref = eServiceReference('1:7:1:0:0:0:0:0:0:0:(type == 1) || (type == 17) || (type == 195) || (type == 25) ORDER BY name')
     all_list = serviceHandler.list(all_ref)
     if all_list is not None:
