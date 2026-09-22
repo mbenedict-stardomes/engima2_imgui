@@ -30,6 +30,13 @@ static int current_channel_idx = 0;
 extern char g_selected_service_ref[512];
 extern bool g_exit_and_play;
 
+// Needed for Master UI Architecture transitions
+extern void SetCurrentChannelName(const char* name);
+extern "C" void TriggerPlayback(const char* ref_str);
+extern uint64_t g_infobar_timer;
+extern uint64_t get_time_ms();
+extern int g_currentState; // 0=MENU_LIVETV, 1=MENU_HOME, 2=MENU_INFOBAR_SMALL, 3=MENU_INFOBAR_BIG, 4=MENU_TUNER, 5=MENU_CHANNELS, 6=MENU_NETWORK, 7=MENU_SYSTEM
+
 void ChannelList_LoadXML(const char* xml_data) {
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_string(xml_data);
@@ -113,16 +120,20 @@ void ChannelList_Render() {
         if (ImGui::Selectable(label, false, 0, ImVec2(0, 40))) {
             // Mouse click support
             current_channel_idx = i;
-            strncpy(g_selected_service_ref, bq.channels[i].ref.c_str(), 511);
-            g_exit_and_play = true;
+            TriggerPlayback(bq.channels[i].ref.c_str());
+            SetCurrentChannelName(bq.channels[i].name.c_str());
+            g_infobar_timer = get_time_ms();
+            g_currentState = 2; // MENU_INFOBAR_SMALL
         }
         
         if (ImGui::IsItemFocused()) {
             current_channel_idx = i;
             // Physical remote OK button support
             if (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_Space)) {
-                strncpy(g_selected_service_ref, bq.channels[i].ref.c_str(), 511);
-                g_exit_and_play = true;
+                TriggerPlayback(bq.channels[i].ref.c_str());
+                SetCurrentChannelName(bq.channels[i].name.c_str());
+                g_infobar_timer = get_time_ms();
+                g_currentState = 2; // MENU_INFOBAR_SMALL
             }
         }
     }
