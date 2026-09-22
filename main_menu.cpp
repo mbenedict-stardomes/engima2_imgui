@@ -56,7 +56,7 @@ void RenderHome() {
         // Pass 'false' for selected state so we don't get a persistent second blue bar
         if (ImGui::Selectable(items[i], false, 0, ImVec2(0, 50))) {
             if (i == 0) g_currentState = MENU_CHANNELS;
-            if (i == 1) g_currentState = MENU_INFOBAR;
+            if (i == 1) g_currentState = MENU_INFOBAR_BIG;
             if (i == 2) g_currentState = MENU_TUNER;
             if (i == 3) g_currentState = MENU_NETWORK;
             if (i == 4) g_currentState = MENU_SYSTEM;
