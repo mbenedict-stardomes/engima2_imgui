@@ -98,6 +98,12 @@ extern "C" void StartImGuiPlugin() {
     }
 
     printf("Shutting down ImGui and returning to Enigma2...\n");
+    
+    // Clear the screen buffer completely so the UI doesn't hang around on exit
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    eglSwapBuffers(display, surface);
+
     Evdev_Shutdown();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui::DestroyContext();
