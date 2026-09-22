@@ -7,6 +7,7 @@
 
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
+#include "main_menu.h"
 #include "tuner_ui.h"
 #include "evdev_input.h"
 
@@ -55,13 +56,11 @@ extern "C" void StartImGuiPlugin() {
     Evdev_Init("/dev/input/event0");
 
     TunerUI_Init();
+    MainMenu_Init();
 
     uint64_t last_time = get_time_ms();
 
     // For a plugin, we run until the user hits EXIT (handled inside Evdev_Poll)
-    // Wait, Evdev_Poll calls exit(0) which will crash Enigma2!
-    // We need to return gracefully instead of calling exit(0)
-    // Let's modify the loop condition.
     bool keep_running = true;
 
     while (keep_running) {
@@ -71,7 +70,6 @@ extern "C" void StartImGuiPlugin() {
         last_time = current_time;
 
         // Feed STB Remote Control inputs to ImGui
-        // We will modify Evdev_Poll to return a bool to indicate exit
         if (!Evdev_Poll_Plugin()) {
             keep_running = false;
         }
@@ -79,7 +77,7 @@ extern "C" void StartImGuiPlugin() {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui::NewFrame();
 
-        TunerUI_Render();
+        MainMenu_Render();
 
         ImGui::Render();
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
