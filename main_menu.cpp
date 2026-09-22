@@ -5,8 +5,10 @@
 #include "infobar.h"
 
 enum MenuState {
+    MENU_LIVETV,
     MENU_HOME,
-    MENU_INFOBAR,
+    MENU_INFOBAR_SMALL,
+    MENU_INFOBAR_BIG,
     MENU_TUNER,
     MENU_CHANNELS,
     MENU_NETWORK,
@@ -14,6 +16,12 @@ enum MenuState {
 };
 
 static MenuState g_currentState = MENU_HOME;
+static uint64_t g_infobar_timer = 0;
+static std::string g_current_channel_name = "";
+
+void SetCurrentChannelName(const char* name) {
+    if (name) g_current_channel_name = name;
+}
 static int home_selected_idx = 0;
 static bool g_trigger_exit = false;
 
@@ -101,14 +109,41 @@ bool MainMenu_Render() {
     ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "ENIGMA2 IMGUI PROTOTYPE");
     ImGui::Separator();
     
-    if (g_currentState == MENU_HOME) {
+    extern uint64_t get_time_ms();
+
+    if (g_currentState == MENU_LIVETV) {
+        // Transparent, do nothing. But listen for inputs.
+        if (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_UpArrow) || ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+            g_currentState = MENU_CHANNELS;
+        }
+        else if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+            g_currentState = MENU_HOME;
+        }
+        else if (ImGui::IsKeyPressed(ImGuiKey_I)) { // Let's pretend "I" is info, but wait Enigma2 remote! 
+            // We need a way to get "info" button. For now, let's just say RightArrow shows info!
+        }
+    }
+    else if (g_currentState == MENU_HOME) {
         RenderHome();
     } 
-    else if (g_currentState == MENU_INFOBAR) {
-        Infobar_Render();
-        // If they press EXIT, go back to HOME
+    else if (g_currentState == MENU_INFOBAR_SMALL) {
+        Infobar_RenderSmall(g_current_channel_name.c_str());
+        
+        // Auto-hide after 2 seconds
+        if (get_time_ms() - g_infobar_timer > 2000) {
+            g_currentState = MENU_LIVETV;
+        }
+        
+        // Pressing OK or RightArrow while small infobar is up shows BIG infobar
+        if (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
+            g_currentState = MENU_INFOBAR_BIG;
+        }
+    }
+    else if (g_currentState == MENU_INFOBAR_BIG) {
+        Infobar_RenderBig(g_current_channel_name.c_str());
+        // Exit to Live TV
         if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
-            g_currentState = MENU_HOME;
+            g_currentState = MENU_LIVETV;
         }
     }
     else if (g_currentState == MENU_TUNER) {

@@ -18,9 +18,28 @@
 static std::queue<std::string> g_action_queue;
 static std::mutex g_action_mutex;
 
+static std::string g_pending_playback;
+static std::mutex g_playback_mutex;
+
 extern "C" void SendImGuiAction(const char* action) {
     std::lock_guard<std::mutex> lock(g_action_mutex);
     g_action_queue.push(action);
+}
+
+extern "C" void TriggerPlayback(const char* ref_str) {
+    std::lock_guard<std::mutex> lock(g_playback_mutex);
+    g_pending_playback = ref_str;
+}
+
+extern "C" const char* GetPendingPlayback() {
+    std::lock_guard<std::mutex> lock(g_playback_mutex);
+    if (g_pending_playback.empty()) return nullptr;
+    
+    static char buf[256];
+    strncpy(buf, g_pending_playback.c_str(), sizeof(buf) - 1);
+    buf[sizeof(buf)-1] = '\0';
+    g_pending_playback.clear();
+    return buf;
 }
 
 uint64_t get_time_ms() {
@@ -107,6 +126,7 @@ extern "C" const char* StartImGuiPlugin() {
                 else if (action == "right") imgui_key = ImGuiKey_RightArrow;
                 else if (action == "ok") imgui_key = ImGuiKey_Enter;
                 else if (action == "cancel" || action == "exit") imgui_key = ImGuiKey_Escape;
+                else if (action == "info") imgui_key = ImGuiKey_I;
                 
                 if (imgui_key != ImGuiKey_None) {
                     io.AddKeyEvent(imgui_key, true);

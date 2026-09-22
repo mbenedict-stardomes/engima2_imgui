@@ -114,9 +114,9 @@ def run_imgui_thread(xml_data, plugin_path):
 
 class ImGuiHostScreen(Screen):
     # This screen covers Enigma2 with a solid black background, hiding the Plugin Browser!
-    # backgroundColor="#000000" in Enigma2 means opaque black.
+    # backgroundColor="transparent" in Enigma2 means opaque black.
     skin = """
-        <screen name="ImGuiHostScreen" position="0,0" size="1920,1080" flags="wfNoBorder" backgroundColor="#000000">
+        <screen name="ImGuiHostScreen" position="0,0" size="1920,1080" flags="wfNoBorder" backgroundColor="transparent">
         </screen>
     """
     
@@ -124,13 +124,16 @@ class ImGuiHostScreen(Screen):
         Screen.__init__(self, session)
         
         # High priority ActionMap to steal ALL remote control presses from Enigma2!
-        self["actions"] = ActionMap(["DirectionActions", "OkCancelActions", "ColorActions", "NumberActions"], {
+        self["actions"] = ActionMap(["DirectionActions", "OkCancelActions", "ColorActions", "NumberActions", "EPGSelectActions", "InfobarEPGActions"], {
             "ok": self.key_ok,
             "cancel": self.key_cancel,
             "up": self.key_up,
             "down": self.key_down,
             "left": self.key_left,
             "right": self.key_right,
+            "info": self.key_info,
+            "epg": self.key_info,
+            "showEventInfo": self.key_info,
             "1": self.dummy, "2": self.dummy, "3": self.dummy,
             "4": self.dummy, "5": self.dummy, "6": self.dummy,
             "7": self.dummy, "8": self.dummy, "9": self.dummy, "0": self.dummy
@@ -153,6 +156,7 @@ class ImGuiHostScreen(Screen):
     def key_right(self): self.send_action("right")
     def key_ok(self): self.send_action("ok")
     def key_cancel(self): self.send_action("cancel")
+    def key_info(self): self.send_action("info")
     
     def dummy(self):
         pass
@@ -171,21 +175,27 @@ class ImGuiHostScreen(Screen):
         self.timer.start(500, False)
         
     def check_exit(self):
-        global g_imgui_running, g_selected_ref
+        global g_imgui_running
+        
+        # Check for background playback requests
+        self.imgui_lib.GetPendingPlayback.restype = ctypes.c_char_p
+        pending = self.imgui_lib.GetPendingPlayback()
+        if pending:
+            ref_str = pending.decode('utf-8')
+            print(f"[ImGui] Changing channel to: {ref_str}")
+            self.session.nav.playService(eServiceReference(ref_str))
+            
+            # Close underlying menus (PluginBrowser) so video shows through our transparent background!
+            try:
+                for dialog in self.session.dialog_stack:
+                    if dialog != self and hasattr(dialog, "close"):
+                        dialog.close()
+            except Exception as e:
+                print(f"[ImGui] Failed to close background menus: {e}")
+                
         if not g_imgui_running:
             self.timer.stop()
-            self.close() # Close our black screen
-            
-            if g_selected_ref:
-                print(f"[ImGui] Changing channel to: {g_selected_ref}")
-                self.session.nav.playService(eServiceReference(g_selected_ref))
-                
-                # Force Enigma2 to drop back to Live TV by closing underlying menus (like PluginBrowser)
-                try:
-                    for dialog in self.session.dialog_stack:
-                        dialog.close()
-                except Exception as e:
-                    print(f"[ImGui] Failed to close background menus: {e}")
+            self.close()
 
 def main(session, **kwargs):
     session.open(ImGuiHostScreen)
