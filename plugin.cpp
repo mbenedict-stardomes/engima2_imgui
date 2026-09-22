@@ -118,16 +118,29 @@ extern "C" const char* StartImGuiPlugin() {
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     eglSwapBuffers(display, surface);
+    printf("EGL Buffer cleared.\n");
 
     Evdev_Shutdown();
+    printf("Evdev shut down.\n");
+    
     ImGui_ImplOpenGL3_Shutdown();
+    printf("ImGui OpenGL3 shut down.\n");
+    
     ImGui::DestroyContext();
+    printf("ImGui Context destroyed.\n");
 
-    // VERY IMPORTANT for plugins: release the EGL context so Enigma2 can take the screen back!
     eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    printf("EGL MakeCurrent detached.\n");
+    
     eglDestroySurface(display, surface);
+    printf("EGL Surface destroyed.\n");
+    
     eglDestroyContext(display, context);
+    printf("EGL Context destroyed.\n");
+    
     eglTerminate(display);
+    printf("EGL Terminated.\n");
 
+    printf("Returning service ref string: '%s'\n", g_selected_service_ref);
     return g_selected_service_ref;
 }

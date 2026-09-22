@@ -12,10 +12,17 @@ static int g_evdev_fd = -1;
 bool Evdev_Init(const char* device_path) {
     g_evdev_fd = open(device_path, O_RDONLY | O_NONBLOCK);
     if (g_evdev_fd < 0) {
-        printf("Failed to open %s: %d\n", device_path, errno);
+        printf("Failed to open evdev device: %s\n", device_path);
         return false;
     }
-    printf("Successfully opened evdev device: %s\n", device_path);
+    
+    // Grab the device so Enigma2 doesn't receive events in the background!
+    int grab = 1;
+    if (ioctl(g_evdev_fd, EVIOCGRAB, &grab) < 0) {
+        printf("Warning: Failed to grab evdev device (EVIOCGRAB)\n");
+    }
+
+    printf("Successfully opened and grabbed evdev device: %s\n", device_path);
     return true;
 }
 

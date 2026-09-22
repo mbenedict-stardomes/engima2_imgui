@@ -45,36 +45,63 @@ def generate_channel_xml():
     return xml
 
 
-def main(session, **kwargs):
-    print("[ImGui] Launching Enigma2 ImGui Prototype...")
+import threading
+from enigma import eTimer
+
+g_imgui_running = False
+g_selected_ref = None
+
+def run_imgui_thread(xml_data, plugin_path):
+    global g_imgui_running, g_selected_ref
     
-    # Generate the XML of live bouquets/channels
-    xml_data = generate_channel_xml()
-    
-    # Load our compiled C++ shared library
-    plugin_path = os.path.dirname(os.path.realpath(__file__)) + "/libimgui_plugin.so"
     imgui_lib = ctypes.CDLL(plugin_path)
-    
-    # Configure C-type signatures
     imgui_lib.StartImGuiPlugin.restype = ctypes.c_char_p
     imgui_lib.SetChannelDataXML.argtypes = [ctypes.c_char_p]
     
-    # Push XML into C++ memory
     imgui_lib.SetChannelDataXML(xml_data.encode('utf-8'))
-    
-    # Boot the ImGui UI (This function blocks the Enigma2 main loop until ImGui exits)
     selected_ref_bytes = imgui_lib.StartImGuiPlugin()
     
-    # When ImGui exits, it hands back a service reference string if the user requested to play a channel
     if selected_ref_bytes:
-        ref_str = selected_ref_bytes.decode('utf-8')
-        if ref_str:
-            print(f"[ImGui] Received playback request for: {ref_str}")
-            session.nav.playService(eServiceReference(ref_str))
-        else:
-            print("[ImGui] Exited cleanly to Enigma2.")
+        g_selected_ref = selected_ref_bytes.decode('utf-8')
     else:
-        print("[ImGui] Exited cleanly to Enigma2.")
+        g_selected_ref = None
+        
+    g_imgui_running = False
+
+class ImGuiMonitor:
+    def __init__(self, session):
+        self.session = session
+        self.timer = eTimer()
+        self.timer.callback.append(self.check_exit)
+        self.timer.start(500, False)
+        
+    def check_exit(self):
+        global g_imgui_running, g_selected_ref
+        if not g_imgui_running:
+            self.timer.stop()
+            if g_selected_ref:
+                print(f"[ImGui] Received playback request for: {g_selected_ref}")
+                self.session.nav.playService(eServiceReference(g_selected_ref))
+            else:
+                print("[ImGui] Exited cleanly to Enigma2.")
+
+def main(session, **kwargs):
+    global g_imgui_running, g_selected_ref
+    if g_imgui_running:
+        return
+        
+    print("[ImGui] Launching Enigma2 ImGui Prototype in Background Thread...")
+    xml_data = generate_channel_xml()
+    
+    g_selected_ref = None
+    g_imgui_running = True
+    
+    # Start monitor on main thread
+    ImGuiMonitor(session)
+    
+    # Run ImGui on background thread
+    plugin_path = os.path.dirname(os.path.realpath(__file__)) + "/libimgui_plugin.so"
+    threading.Thread(target=run_imgui_thread, args=(xml_data, plugin_path)).start()
 
 
 def Plugins(**kwargs):
