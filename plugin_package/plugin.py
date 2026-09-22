@@ -69,25 +69,37 @@ class ImGuiHostScreen(Screen):
         Screen.__init__(self, session)
         
         # High priority ActionMap to steal ALL remote control presses from Enigma2!
-        self["actions"] = ActionMap(["DirectionActions", "OkCancelActions", "ColorActions"], {
-            "ok": self.dummy,
-            "cancel": self.dummy,
-            "up": self.dummy,
-            "down": self.dummy,
-            "left": self.dummy,
-            "right": self.dummy,
-            "red": self.dummy,
-            "green": self.dummy,
-            "yellow": self.dummy,
-            "blue": self.dummy,
+        self["actions"] = ActionMap(["DirectionActions", "OkCancelActions", "ColorActions", "NumberActions"], {
+            "ok": self.key_ok,
+            "cancel": self.key_cancel,
+            "up": self.key_up,
+            "down": self.key_down,
+            "left": self.key_left,
+            "right": self.key_right,
+            "1": self.dummy, "2": self.dummy, "3": self.dummy,
+            "4": self.dummy, "5": self.dummy, "6": self.dummy,
+            "7": self.dummy, "8": self.dummy, "9": self.dummy, "0": self.dummy
         }, -1)
         
         self.onLayoutFinish.append(self.start_imgui)
         self.timer = eTimer()
         self.timer.callback.append(self.check_exit)
         
+        # Load lib for sending keys
+        self.imgui_lib = ctypes.CDLL(os.path.dirname(os.path.realpath(__file__)) + "/libimgui_plugin.so")
+        self.imgui_lib.SendImGuiAction.argtypes = [ctypes.c_char_p]
+        
+    def send_action(self, action_name):
+        self.imgui_lib.SendImGuiAction(action_name.encode('utf-8'))
+        
+    def key_up(self): self.send_action("up")
+    def key_down(self): self.send_action("down")
+    def key_left(self): self.send_action("left")
+    def key_right(self): self.send_action("right")
+    def key_ok(self): self.send_action("ok")
+    def key_cancel(self): self.send_action("cancel")
+    
     def dummy(self):
-        # Do nothing. Our C++ ImGui evdev code reads the actual remote control inputs directly!
         pass
         
     def start_imgui(self):

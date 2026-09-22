@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <queue>
+#include <mutex>
+#include <string>
 
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
@@ -11,6 +14,14 @@
 #include "tuner_ui.h"
 #include "evdev_input.h"
 #include "channel_list.h"
+
+static std::queue<std::string> g_action_queue;
+static std::mutex g_action_mutex;
+
+extern "C" void SendImGuiAction(const char* action) {
+    std::lock_guard<std::mutex> lock(g_action_mutex);
+    g_action_queue.push(action);
+}
 
 uint64_t get_time_ms() {
     struct timespec ts;
@@ -69,15 +80,11 @@ extern "C" const char* StartImGuiPlugin() {
     // Setup OpenGL ES 2.0 backend
     ImGui_ImplOpenGL3_Init("#version 100");
 
-    // Initialize the STB Remote Control Evdev Interface
-    Evdev_Init("/dev/input/event0");
-
     TunerUI_Init();
     MainMenu_Init();
 
     uint64_t last_time = get_time_ms();
 
-    // For a plugin, we run until the user hits EXIT (handled inside Evdev_Poll)
     bool keep_running = true;
 
     while (keep_running) {
@@ -86,9 +93,26 @@ extern "C" const char* StartImGuiPlugin() {
         if (io.DeltaTime <= 0.0f) io.DeltaTime = 0.016f;
         last_time = current_time;
 
-        // Feed STB Remote Control inputs to ImGui
-        if (!Evdev_Poll_Plugin()) {
-            keep_running = false;
+        // Process keys from Python Enigma2 ActionMap
+        {
+            std::lock_guard<std::mutex> lock(g_action_mutex);
+            while (!g_action_queue.empty()) {
+                std::string action = g_action_queue.front();
+                g_action_queue.pop();
+                
+                ImGuiKey imgui_key = ImGuiKey_None;
+                if (action == "up") imgui_key = ImGuiKey_UpArrow;
+                else if (action == "down") imgui_key = ImGuiKey_DownArrow;
+                else if (action == "left") imgui_key = ImGuiKey_LeftArrow;
+                else if (action == "right") imgui_key = ImGuiKey_RightArrow;
+                else if (action == "ok") imgui_key = ImGuiKey_Enter;
+                else if (action == "cancel" || action == "exit") imgui_key = ImGuiKey_Escape;
+                
+                if (imgui_key != ImGuiKey_None) {
+                    io.AddKeyEvent(imgui_key, true);
+                    io.AddKeyEvent(imgui_key, false);
+                }
+            }
         }
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -120,9 +144,6 @@ extern "C" const char* StartImGuiPlugin() {
     eglSwapBuffers(display, surface);
     printf("EGL Buffer cleared.\n");
 
-    Evdev_Shutdown();
-    printf("Evdev shut down.\n");
-    
     ImGui_ImplOpenGL3_Shutdown();
     printf("ImGui OpenGL3 shut down.\n");
     
