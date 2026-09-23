@@ -178,3 +178,28 @@ void Infobar_RenderBig(const char* channel_name) {
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(2);
 }
+
+
+void Infobar_RenderSmall() {
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.7f, io.DisplaySize.y * 0.15f), ImGuiCond_Always);
+    ImGui::SetNextWindowPos(ImVec2((io.DisplaySize.x - (io.DisplaySize.x * 0.7f)) * 0.5f, io.DisplaySize.y - (io.DisplaySize.y * 0.18f)), ImGuiCond_Always);
+    
+    ImGui::Begin("SmallInfobar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
+    
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    ImVec2 p = ImGui::GetWindowPos();
+    ImVec2 s = ImGui::GetWindowSize();
+    draw_list->AddRectFilled(p, ImVec2(p.x + s.x, p.y + s.y), IM_COL32(20, 25, 35, 230), 15.0f);
+    draw_list->AddRect(p, ImVec2(p.x + s.x, p.y + s.y), IM_COL32(100, 150, 255, 100), 15.0f, 0, 2.0f);
+    
+    ImGui::SetCursorPos(ImVec2(s.x * 0.05f, s.y * 0.2f));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.2f, 1.0f));
+    ImGui::Text("NOW: %s", g_epg_now_name.c_str());
+    ImGui::PopStyleColor();
+    
+    ImGui::SetCursorPos(ImVec2(s.x * 0.05f, s.y * 0.6f));
+    ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "NEXT: %s", g_epg_next_name.c_str());
+    
+    ImGui::End();
+}

@@ -164,6 +164,19 @@ extern "C" const char* StartImGuiPlugin() {
                     g_currentState = 1; // MENU_HOME
                     continue;
                 }
+
+                if (action == "info") {
+                    if (g_currentState == 5) { // LIVETV -> SMALL
+                        g_currentState = 6; 
+                    } else if (g_currentState == 6) { // SMALL -> BIG
+                        g_currentState = 4;
+                    } else if (g_currentState == 4) { // BIG -> LIVETV
+                        g_currentState = 5;
+                    } else {
+                        g_currentState = 6;
+                    }
+                    continue;
+                }
                 if (action == "channels") {
                     g_currentState = 5; // MENU_CHANNELS
                     continue;
