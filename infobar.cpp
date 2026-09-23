@@ -3,9 +3,6 @@
 #include <string>
 #include <time.h>
 
-static int g_snr = 85;
-static int g_agc = 70;
-static int g_ber = 0;
 
 
 #include <string>
