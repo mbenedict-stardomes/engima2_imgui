@@ -130,6 +130,35 @@ extern "C" const char* StartImGuiPlugin() {
                     continue;
                 }
 
+
+                if (action.rfind("telemetry|", 0) == 0) {
+                    extern void UpdateTelemetry(int snr, int agc, int ber);
+                    int snr = 0, agc = 0, ber = 0;
+                    sscanf(action.c_str(), "telemetry|%d|%d|%d", &snr, &agc, &ber);
+                    UpdateTelemetry(snr, agc, ber);
+                    continue;
+                }
+                if (action.rfind("epg_now|", 0) == 0) {
+                    extern void UpdateEPGNow(const char* name, const char* desc);
+                    size_t p1 = action.find('|', 8);
+                    if (p1 != std::string::npos) {
+                        std::string name = action.substr(8, p1 - 8);
+                        std::string desc = action.substr(p1 + 1);
+                        UpdateEPGNow(name.c_str(), desc.c_str());
+                    }
+                    continue;
+                }
+                if (action.rfind("epg_next|", 0) == 0) {
+                    extern void UpdateEPGNext(const char* name, const char* desc);
+                    size_t p1 = action.find('|', 9);
+                    if (p1 != std::string::npos) {
+                        std::string name = action.substr(9, p1 - 9);
+                        std::string desc = action.substr(p1 + 1);
+                        UpdateEPGNext(name.c_str(), desc.c_str());
+                    }
+                    continue;
+                }
+
                 if (action == "channels") {
                     g_currentState = 5; // MENU_CHANNELS
                     continue;

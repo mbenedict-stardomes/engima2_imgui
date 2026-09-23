@@ -199,6 +199,48 @@ class ImGuiHostScreen(Screen):
         except:
             pass
 
+
+        # Poll Telemetry and EPG
+        try:
+            service = self.session.nav.getCurrentService()
+            if service:
+                # Telemetry
+                feinfo = service.frontendInfo()
+                if feinfo:
+                    fe_data = feinfo.getFrontendData() if hasattr(feinfo, 'getFrontendData') else None
+                    if fe_data:
+                        snr = fe_data.get('tuner_signal_quality', fe_data.get('snr', 0))
+                        agc = fe_data.get('tuner_signal_power', fe_data.get('agc', 0))
+                        ber = fe_data.get('tuner_bit_error_rate', fe_data.get('ber', 0))
+                        
+                        # Convert out of 65536 if needed
+                        if snr and snr > 100: snr = (snr * 100) // 65536
+                        if agc and agc > 100: agc = (agc * 100) // 65536
+                        
+                        self.send_action(f"telemetry|{snr}|{agc}|{ber}")
+                
+                # EPG
+                info = service.info()
+                if info:
+                    ev_now = info.getEvent(0)
+                    if ev_now:
+                        name = ev_now.getEventName()
+                        desc = ev_now.getShortDescription() or ""
+                        # Escape pipes
+                        name = name.replace('|', '-') if name else ""
+                        desc = desc.replace('|', '-') if desc else ""
+                        self.send_action(f"epg_now|{name}|{desc}")
+                    
+                    ev_next = info.getEvent(1)
+                    if ev_next:
+                        name = ev_next.getEventName()
+                        desc = ev_next.getShortDescription() or ""
+                        name = name.replace('|', '-') if name else ""
+                        desc = desc.replace('|', '-') if desc else ""
+                        self.send_action(f"epg_next|{name}|{desc}")
+        except Exception as e:
+            pass
+
         pending = self.imgui_lib.GetPendingPlayback()
         if pending:
             ref_str = pending.decode('utf-8')

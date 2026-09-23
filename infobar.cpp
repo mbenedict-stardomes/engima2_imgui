@@ -7,6 +7,26 @@ static int g_snr = 85;
 static int g_agc = 70;
 static int g_ber = 0;
 
+
+#include <string>
+int g_snr = 0, g_agc = 0, g_ber = 0;
+std::string g_epg_now_name = "Loading...";
+std::string g_epg_now_desc = "";
+std::string g_epg_next_name = "Loading...";
+std::string g_epg_next_desc = "";
+
+void UpdateTelemetry(int snr, int agc, int ber) {
+    g_snr = snr; g_agc = agc; g_ber = ber;
+}
+void UpdateEPGNow(const char* name, const char* desc) {
+    g_epg_now_name = name ? name : "";
+    g_epg_now_desc = desc ? desc : "";
+}
+void UpdateEPGNext(const char* name, const char* desc) {
+    g_epg_next_name = name ? name : "";
+    g_epg_next_desc = desc ? desc : "";
+}
+
 void Infobar_Init() {
 }
 
