@@ -4,16 +4,7 @@
 #include "channel_list.h"
 #include "infobar.h"
 
-enum MenuState {
-    MENU_LIVETV,
-    MENU_HOME,
-    MENU_INFOBAR_SMALL,
-    MENU_INFOBAR_BIG,
-    MENU_TUNER,
-    MENU_CHANNELS,
-    MENU_NETWORK,
-    MENU_SYSTEM
-};
+
 
 int g_currentState = 1;
 uint64_t g_infobar_timer = 0;

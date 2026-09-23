@@ -2,6 +2,7 @@
 #include <GLES2/gl2.h>
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
+#include "main_menu.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -161,24 +162,24 @@ extern "C" const char* StartImGuiPlugin() {
 
 
                 if (action == "menu") {
-                    g_currentState = 1; // MENU_HOME
+                    g_currentState = MENU_HOME;
                     continue;
                 }
 
                 if (action == "info") {
-                    if (g_currentState == 5) { // LIVETV -> SMALL
-                        g_currentState = 6; 
-                    } else if (g_currentState == 6) { // SMALL -> BIG
-                        g_currentState = 4;
-                    } else if (g_currentState == 4) { // BIG -> LIVETV
-                        g_currentState = 5;
+                    if (g_currentState == MENU_LIVETV) { // LIVETV -> SMALL
+                        g_currentState = MENU_INFOBAR_SMALL; 
+                    } else if (g_currentState == MENU_INFOBAR_SMALL) { // SMALL -> BIG
+                        g_currentState = MENU_INFOBAR_BIG;
+                    } else if (g_currentState == MENU_INFOBAR_BIG) { // BIG -> LIVETV
+                        g_currentState = MENU_LIVETV;
                     } else {
-                        g_currentState = 6;
+                        g_currentState = MENU_INFOBAR_SMALL;
                     }
                     continue;
                 }
                 if (action == "channels") {
-                    g_currentState = 5; // MENU_CHANNELS
+                    g_currentState = MENU_CHANNELS;
                     continue;
                 }
                 
