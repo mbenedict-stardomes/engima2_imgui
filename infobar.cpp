@@ -119,7 +119,6 @@ void Infobar_RenderBig(const char* channel_name) {
     ImGui::PopFont();
     
     ImGui::Spacing();
-    ImGuiIO& io = ImGui::GetIO();
     float bar_width = io.DisplaySize.x * 0.15f;
     float bar_height = io.DisplaySize.y * 0.015f;
     
