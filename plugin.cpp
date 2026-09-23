@@ -133,12 +133,19 @@ extern "C" const char* StartImGuiPlugin() {
 
 
                 if (action.rfind("telemetry|", 0) == 0) {
-                    extern void UpdateTelemetry(int snr, int agc, int ber);
-                    int snr = 0, agc = 0, ber = 0;
-                    sscanf(action.c_str(), "telemetry|%d|%d|%d", &snr, &agc, &ber);
-                    UpdateTelemetry(snr, agc, ber);
-                    continue;
-                }
+            int snr = 0, agc = 0, ber = 0;
+            sscanf(action.c_str(), "telemetry|%d|%d|%d", &snr, &agc, &ber);
+            extern void UpdateTelemetry(int, int, int);
+            UpdateTelemetry(snr, agc, ber);
+            continue;
+        }
+        
+        if (action.rfind("ext_telemetry|", 0) == 0) {
+            std::string ext = action.substr(14);
+            extern void UpdateExtTelemetry(const char*);
+            UpdateExtTelemetry(ext.c_str());
+            continue;
+        }
                 if (action.rfind("epg_now|", 0) == 0) {
                     extern void UpdateEPGNow(const char* name, const char* desc);
                     size_t p1 = action.find('|', 8);

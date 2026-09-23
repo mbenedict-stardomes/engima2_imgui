@@ -19,6 +19,13 @@ std::string GetProcVal(const char* path) {
     return val;
 }
 
+
+extern "C" {
+    void UpdateExtTelemetry(const char* ext) {
+        if (ext) g_ext_telemetry = ext;
+    }
+}
+
 void DrawMediaSpecs() {
     std::string xres = GetProcVal("/proc/stb/vmpeg/0/xres");
     std::string yres = GetProcVal("/proc/stb/vmpeg/0/yres");
@@ -139,6 +146,9 @@ void Infobar_RenderBig(const char* channel_name) {
     ImGui::SameLine(ImGui::GetWindowWidth() * 0.65f);
     ImGui::ProgressBar(0.0f, ImVec2(bar_width, bar_height), "");
     ImGui::PopStyleColor();
+    
+    ImGui::Spacing();
+    ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "%s", g_ext_telemetry.c_str());
     
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
     ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "1920x1080i  |  DVB  |  FTA");

@@ -218,11 +218,51 @@ class ImGuiHostScreen(Screen):
                         agc = fe_data.get('tuner_signal_power', fe_data.get('agc', 0))
                         ber = fe_data.get('tuner_bit_error_rate', fe_data.get('ber', 0))
                         
+
                         # Convert out of 65536 if needed
                         if snr and snr > 100: snr = (snr * 100) // 65536
                         if agc and agc > 100: agc = (agc * 100) // 65536
                         
                         self.send_action(f"telemetry|{snr}|{agc}|{ber}")
+                        
+                        # EXTENDED TELEMETRY
+                        fe_ext = []
+                        
+                        if fe_data:
+                            freq = fe_data.get('tuner_frequency', fe_data.get('frequency', 0))
+                            if freq > 1000000:
+                                freq = freq // 1000
+                            sr = fe_data.get('tuner_symbol_rate', fe_data.get('symbol_rate', 0))
+                            if sr > 1000000:
+                                sr = sr // 1000
+                                
+                            sys_enum = fe_data.get('tuner_system', fe_data.get('system', 0))
+                            sys_str = "DVB-S" if sys_enum == 0 else "DVB-S2" if sys_enum == 1 else "DVB-T" if sys_enum == 3 else "DVB-C" if sys_enum == 2 else "DVB-T2" if sys_enum == 4 else "DVB"
+                            
+                            if freq > 0:
+                                if sr > 0:
+                                    fe_ext.append(f"TP: {freq} MHz {sr} KS/s {sys_str}")
+                                else:
+                                    fe_ext.append(f"TP: {freq} MHz {sys_str}")
+                                    
+                        try:
+                            from enigma import iServiceInformation
+                            if info:
+                                sid = info.getInfo(iServiceInformation.sSID)
+                                tsid = info.getInfo(iServiceInformation.sTSID)
+                                onid = info.getInfo(iServiceInformation.sONID)
+                                vid = info.getInfo(iServiceInformation.sVideoPID)
+                                apid = info.getInfo(iServiceInformation.sAudioPID)
+                                
+                                if sid > 0:
+                                    fe_ext.append(f"SID: 0x{sid:04X}  TSID: 0x{tsid:04X}  ONID: 0x{onid:04X}  VPID: 0x{vid:04X}  APID: 0x{apid:04X}")
+                        except:
+                            pass
+                            
+                        if fe_ext:
+                            fe_ext_str = " | ".join(fe_ext)
+                            self.send_action(f"ext_telemetry|{fe_ext_str}")
+
                 
                 # EPG
                 info = service.info()
