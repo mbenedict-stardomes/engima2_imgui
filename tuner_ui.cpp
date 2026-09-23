@@ -55,7 +55,7 @@ void TunerUI_Render() {
     }
     
     ImGui::Columns(2, "TunerColumns", false);
-    ImGui::SetColumnWidth(0, 600); // Left column
+    ImGui::SetColumnWidth(0, 650); // Left column
     
     // Satellite Combo
     const char* preview_sat = g_satellites[current_sat_idx].name.c_str();
@@ -106,11 +106,13 @@ void TunerUI_Render() {
     }
     
     ImGui::Spacing();
-    if (ImGui::Button("Start Blindscan", ImVec2(180, 50))) {}
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 10)); // Add gaps between buttons
+    if (ImGui::Button("Blindscan", ImVec2(150, 60))) {}
     ImGui::SameLine();
-    if (ImGui::Button("Manual Scan", ImVec2(180, 50))) {}
+    if (ImGui::Button("Manual Scan", ImVec2(150, 60))) {}
     ImGui::SameLine();
-    if (ImGui::Button("Auto Scan", ImVec2(180, 50))) {}
+    if (ImGui::Button("Auto Scan", ImVec2(150, 60))) {}
+    ImGui::PopStyleVar();
     
     ImGui::NextColumn(); // MOVE TO RIGHT COLUMN
     
@@ -141,7 +143,7 @@ void TunerUI_Render() {
     // CONSTELLATION DIAGRAM
     ImGui::Text("Constellation Diagram (IQ Plot)");
     ImVec2 canvas_p = ImGui::GetCursorScreenPos();
-    ImVec2 canvas_size = ImVec2(300, 300);
+    ImVec2 canvas_size = ImVec2(350, 350);
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     
     // Draw background
