@@ -145,6 +145,7 @@ bool MainMenu_Render() {
         }
     }
     else if (g_currentState == MENU_INFOBAR_BIG) {
+        Infobar_RenderSmall(g_current_channel_name.c_str());
         Infobar_RenderBig(g_current_channel_name.c_str());
         // Exit to Live TV
         if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
