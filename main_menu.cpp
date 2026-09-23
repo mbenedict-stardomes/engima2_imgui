@@ -107,8 +107,10 @@ bool MainMenu_Render() {
     ImGui::Begin("Enigma2 Main Menu", nullptr, flags);
     
     // Header Logo
-    ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "ENIGMA2 IMGUI PROTOTYPE v0.10");
-    ImGui::Separator();
+    if (g_currentState != MENU_LIVETV && g_currentState != MENU_INFOBAR_SMALL && g_currentState != MENU_INFOBAR_BIG) {
+        ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "ENIGMA2 IMGUI PROTOTYPE v0.10");
+        ImGui::Separator();
+    }
     
     extern uint64_t get_time_ms();
 
