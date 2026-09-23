@@ -28,9 +28,9 @@ bool g_trigger_exit = false;
 int g_current_volume = 50;
 uint64_t g_volume_timer = 0;
 
+extern uint64_t get_time_ms();
 extern "C" void TriggerVolumeOverlay(int vol) {
     g_current_volume = vol;
-    extern uint64_t get_time_ms();
     g_volume_timer = get_time_ms();
 }
 
