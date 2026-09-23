@@ -12,14 +12,14 @@ std::string g_epg_now_desc = "";
 std::string g_epg_next_name = "Loading...";
 std::string g_epg_next_desc = "";
 
-void UpdateTelemetry(int snr, int agc, int ber) {
+extern "C" void UpdateTelemetry(int snr, int agc, int ber) {
     g_snr = snr; g_agc = agc; g_ber = ber;
 }
-void UpdateEPGNow(const char* name, const char* desc) {
+extern "C" void UpdateEPGNow(const char* name, const char* desc) {
     g_epg_now_name = name ? name : "";
     g_epg_now_desc = desc ? desc : "";
 }
-void UpdateEPGNext(const char* name, const char* desc) {
+extern "C" void UpdateEPGNext(const char* name, const char* desc) {
     g_epg_next_name = name ? name : "";
     g_epg_next_desc = desc ? desc : "";
 }
