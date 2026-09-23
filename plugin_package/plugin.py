@@ -3,6 +3,35 @@ from Screens.Screen import Screen
 from Components.ActionMap import ActionMap
 from enigma import eServiceReference, eServiceCenter, eTimer
 import ctypes
+
+def load_lamedb():
+    tp_db = {}
+    try:
+        with open("/etc/enigma2/lamedb", "r") as f:
+            lines = f.readlines()
+            
+        in_transponders = False
+        curr_id = None
+        for line in lines:
+            line = line.strip()
+            if line == "transponders":
+                in_transponders = True
+                continue
+            if line == "services":
+                break # Stop at services block
+            if in_transponders:
+                if line == "/":
+                    curr_id = None
+                    continue
+                if ":" in line and curr_id is None:
+                    curr_id = line.lower()
+                elif curr_id is not None:
+                    tp_db[curr_id] = line
+    except:
+        pass
+    return tp_db
+
+
 import os
 import threading
 
@@ -226,42 +255,85 @@ class ImGuiHostScreen(Screen):
                         self.send_action(f"telemetry|{snr}|{agc}|{ber}")
                         
                         # EXTENDED TELEMETRY
-                        fe_ext = []
+                        fe_ext_str = ""
+                        lamedb_ext = ""
+                        hex_ids = ""
                         
-                        if fe_data:
+                        # 1. Get Reference to extract IDs and query Lamedb
+                        play_ref = self.session.nav.getCurrentlyPlayingServiceReference()
+                        if play_ref:
+                            ref_str = play_ref.toString()
+                            parts = ref_str.split(':')
+                            if len(parts) >= 7:
+                                try:
+                                    sid_hex = parts[3].zfill(4).upper()
+                                    tsid_hex = parts[4].zfill(4).upper()
+                                    onid_hex = parts[5].zfill(4).upper()
+                                    namespace_hex = parts[6].zfill(8).lower()
+                                    
+                                    tp_key = f"{namespace_hex}:{tsid_hex.lower()}:{onid_hex.lower()}"
+                                    
+                                    if not hasattr(self, 'tp_db'):
+                                        self.tp_db = load_lamedb()
+                                        
+                                    if tp_key in self.tp_db:
+                                        tp_line = self.tp_db[tp_key]
+                                        tp_parts = tp_line.split()
+                                        if len(tp_parts) == 2:
+                                            t_type = tp_parts[0]
+                                            t_data = tp_parts[1].split(':')
+                                            freq = int(t_data[0])
+                                            if freq > 1000000: freq = freq // 1000
+                                            
+                                            if t_type == 's' and len(t_data) >= 2:
+                                                sr = int(t_data[1])
+                                                if sr > 1000000: sr = sr // 1000
+                                                pol = int(t_data[2]) if len(t_data) > 2 else 0
+                                                pol_str = "H" if pol == 0 else "V" if pol == 1 else "L" if pol == 2 else "R"
+                                                lamedb_ext = f"TP: {freq} MHz {pol_str} {sr} KS/s"
+                                            elif t_type == 't':
+                                                lamedb_ext = f"TP: {freq} MHz DVB-T"
+                                            elif t_type == 'c':
+                                                sr = int(t_data[1]) if len(t_data) > 1 else 0
+                                                if sr > 1000000: sr = sr // 1000
+                                                lamedb_ext = f"TP: {freq} MHz {sr} KS/s DVB-C"
+                                                
+                                    hex_ids = f"SID: 0x{sid_hex}  TSID: 0x{tsid_hex}  ONID: 0x{onid_hex}"
+                                except:
+                                    pass
+                        
+                        # 2. Append Audio/Video PIDs from info
+                        try:
+                            from enigma import iServiceInformation
+                            if info:
+                                vid = info.getInfo(iServiceInformation.sVideoPID)
+                                apid = info.getInfo(iServiceInformation.sAudioPID)
+                                if vid > 0:
+                                    hex_ids += f"  VPID: 0x{vid:04X}  APID: 0x{apid:04X}"
+                        except:
+                            pass
+                            
+                        # 3. Fallback to frontendInfo if lamedb failed
+                        if not lamedb_ext and fe_data:
                             freq = fe_data.get('tuner_frequency', fe_data.get('frequency', 0))
-                            if freq > 1000000:
-                                freq = freq // 1000
+                            if freq > 1000000: freq = freq // 1000
                             sr = fe_data.get('tuner_symbol_rate', fe_data.get('symbol_rate', 0))
-                            if sr > 1000000:
-                                sr = sr // 1000
-                                
+                            if sr > 1000000: sr = sr // 1000
+                            
                             sys_enum = fe_data.get('tuner_system', fe_data.get('system', 0))
                             sys_str = "DVB-S" if sys_enum == 0 else "DVB-S2" if sys_enum == 1 else "DVB-T" if sys_enum == 3 else "DVB-C" if sys_enum == 2 else "DVB-T2" if sys_enum == 4 else "DVB"
                             
                             if freq > 0:
                                 if sr > 0:
-                                    fe_ext.append(f"TP: {freq} MHz {sr} KS/s {sys_str}")
+                                    lamedb_ext = f"TP: {freq} MHz {sr} KS/s {sys_str}"
                                 else:
-                                    fe_ext.append(f"TP: {freq} MHz {sys_str}")
+                                    lamedb_ext = f"TP: {freq} MHz {sys_str}"
                                     
-                        try:
-                            from enigma import iServiceInformation
-                            if info:
-                                sid = info.getInfo(iServiceInformation.sSID)
-                                tsid = info.getInfo(iServiceInformation.sTSID)
-                                onid = info.getInfo(iServiceInformation.sONID)
-                                vid = info.getInfo(iServiceInformation.sVideoPID)
-                                apid = info.getInfo(iServiceInformation.sAudioPID)
-                                
-                                if sid > 0:
-                                    fe_ext.append(f"SID: 0x{sid:04X}  TSID: 0x{tsid:04X}  ONID: 0x{onid:04X}  VPID: 0x{vid:04X}  APID: 0x{apid:04X}")
-                        except:
-                            pass
-                            
-                        if fe_ext:
-                            fe_ext_str = " | ".join(fe_ext)
-                            self.send_action(f"ext_telemetry|{fe_ext_str}")
+                        fe_ext_str = ""
+                        if lamedb_ext: fe_ext_str += lamedb_ext
+                        if hex_ids: fe_ext_str += (" | " if lamedb_ext else "") + hex_ids
+                        
+                        self.send_action(f"ext_telemetry|{fe_ext_str}")
 
                 
                 # EPG

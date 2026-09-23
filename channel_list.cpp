@@ -105,12 +105,30 @@ void ChannelList_Render() {
     static int pending_bouquet_switch = -1;
     if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
         if (current_bouquet_idx > 0) pending_bouquet_switch = current_bouquet_idx - 1;
+        else pending_bouquet_switch = g_bouquets.size() - 1; // Wrap left to rightmost
     }
     if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
         if (current_bouquet_idx < g_bouquets.size() - 1) pending_bouquet_switch = current_bouquet_idx + 1;
+        else pending_bouquet_switch = 0; // Wrap right to leftmost
     }
     
     if (ImGui::BeginTabBar("BouquetTabs", ImGuiTabBarFlags_FittingPolicyScroll)) {
+        
+        // Cyclic Channel Up/Down
+        if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+            if (current_channel_idx == 0) {
+                current_channel_idx = g_bouquets[current_bouquet_idx].channels.size() - 1;
+            } else {
+                current_channel_idx--;
+            }
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+            if (current_channel_idx == g_bouquets[current_bouquet_idx].channels.size() - 1) {
+                current_channel_idx = 0;
+            } else {
+                current_channel_idx++;
+            }
+        }
         for (int b = 0; b < g_bouquets.size(); ++b) {
             ImGuiTabItemFlags flags = 0;
             if (pending_bouquet_switch == b) {
