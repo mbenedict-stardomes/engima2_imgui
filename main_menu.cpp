@@ -44,7 +44,7 @@ void RenderHome() {
     ImVec2 windowSize = ImGui::GetWindowSize();
     
     // Classic Enigma2 Center Dialog
-    ImVec2 dialogSize(800, 600);
+    ImVec2 dialogSize(ImGui::GetIO().DisplaySize.x * 0.4f, ImGui::GetIO().DisplaySize.y * 0.6f);
     ImGui::SetCursorPos(ImVec2((windowSize.x - dialogSize.x) * 0.5f, (windowSize.y - dialogSize.y) * 0.5f));
     
     ImGui::BeginChild("HomeMenuDialog", dialogSize, true, ImGuiWindowFlags_NoScrollbar);
@@ -64,7 +64,7 @@ void RenderHome() {
         }
 
         // Pass 'false' for selected state so we don't get a persistent second blue bar
-        if (ImGui::Selectable(items[i], false, 0, ImVec2(0, 50))) {
+        if (ImGui::Selectable(items[i], false, 0, ImVec2(0, ImGui::GetIO().DisplaySize.y * 0.05f))) {
             if (i == 0) g_currentState = MENU_LIVETV;
             if (i == 1) g_currentState = MENU_CHANNELS;
             if (i == 2) g_currentState = MENU_INFOBAR_BIG;
@@ -162,14 +162,14 @@ bool MainMenu_Render() {
     }
     else if (g_currentState == MENU_TUNER) {
         // Embed the Tuner UI exactly in the center
-        ImVec2 tunerSize(1200, 700);
+        ImVec2 tunerSize(io.DisplaySize.x * 0.8f, io.DisplaySize.y * 0.8f);
         ImGui::SetCursorPos(ImVec2((io.DisplaySize.x - tunerSize.x) * 0.5f, (io.DisplaySize.y - tunerSize.y) * 0.5f));
         ImGui::BeginChild("TunerChild", tunerSize, true, ImGuiWindowFlags_NoScrollbar);
         TunerUI_Render();
         ImGui::EndChild();
     }
     else if (g_currentState == MENU_CHANNELS) {
-        ImVec2 listSize(1400, 800);
+        ImVec2 listSize(io.DisplaySize.x * 0.8f, io.DisplaySize.y * 0.8f);
         ImGui::SetCursorPos(ImVec2((io.DisplaySize.x - listSize.x) * 0.5f, (io.DisplaySize.y - listSize.y) * 0.5f));
         ImGui::BeginChild("ChannelListChild", listSize, true, ImGuiWindowFlags_NoScrollbar);
         ChannelList_Render();
@@ -181,7 +181,7 @@ bool MainMenu_Render() {
 
     if (g_currentState != MENU_LIVETV && g_currentState != MENU_INFOBAR_SMALL && g_currentState != MENU_INFOBAR_BIG) {
         // Classic Enigma2 Footer (Color Buttons)
-        ImGui::SetCursorPosY(io.DisplaySize.y - 60);
+        ImGui::SetCursorPosY(io.DisplaySize.y - io.DisplaySize.y * 0.06f);
         ImGui::Separator();
         
         // Render color buttons
@@ -199,24 +199,24 @@ bool MainMenu_Render() {
         if (get_time_ms() - g_volume_timer > 3000) {
             g_volume_timer = 0;
         } else {
-            ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 150, io.DisplaySize.y * 0.5f - 200), ImGuiCond_Always);
-            ImGui::SetNextWindowSize(ImVec2(100, 400), ImGuiCond_Always);
+            ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - (io.DisplaySize.x * 0.08f), io.DisplaySize.y * 0.3f), ImGuiCond_Always);
+            ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.05f, io.DisplaySize.y * 0.4f), ImGuiCond_Always);
             ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.85f));
             ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10.0f);
             ImGui::Begin("VolumeOverlay", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar);
             
             // Center text
-            ImGui::SetCursorPosX((100 - ImGui::CalcTextSize("VOL").x) * 0.5f);
+            ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize("VOL").x) * 0.5f);
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.8f, 1.0f, 1.0f));
             ImGui::Text("VOL");
             ImGui::PopStyleColor();
             
             ImGui::Spacing();
-            ImGui::SetCursorPosX((100 - 40) * 0.5f); // Center slider
+            ImGui::SetCursorPosX((ImGui::GetWindowWidth() - (io.DisplaySize.x * 0.02f)) * 0.5f); // Center slider
             ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(0.4f, 0.8f, 1.0f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImVec4(0.6f, 0.9f, 1.0f, 1.0f));
-            ImGui::VSliderInt("##vol", ImVec2(40, 300), &g_current_volume, 0, 100, "%d");
+            ImGui::VSliderInt("##vol", ImVec2(io.DisplaySize.x * 0.02f, ImGui::GetWindowHeight() * 0.8f), &g_current_volume, 0, 100, "%d");
             ImGui::PopStyleColor(3);
             
             ImGui::End();
@@ -241,7 +241,7 @@ bool MainMenu_Render() {
         ImGui::Separator();
         
         ImGui::SetItemDefaultFocus();
-        if (ImGui::Button("Cancel", ImVec2(150, 50)) || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+        if (ImGui::Button("Cancel", ImVec2(io.DisplaySize.x * 0.1f, io.DisplaySize.y * 0.05f)) || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
             ImGui::CloseCurrentPopup();
         }
         
@@ -250,7 +250,7 @@ bool MainMenu_Render() {
         // Make OK button red
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
-        if (ImGui::Button("Exit", ImVec2(150, 50))) {
+        if (ImGui::Button("Exit", ImVec2(io.DisplaySize.x * 0.1f, io.DisplaySize.y * 0.05f))) {
             keep_running = false;
             ImGui::CloseCurrentPopup();
         }
