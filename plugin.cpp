@@ -122,6 +122,14 @@ extern "C" const char* StartImGuiPlugin() {
                 std::string action = g_action_queue.front();
                 g_action_queue.pop();
                 
+
+                if (action.rfind("vol_", 0) == 0) {
+                    extern void TriggerVolumeOverlay(int vol);
+                    int v = std::stoi(action.substr(4));
+                    TriggerVolumeOverlay(v);
+                    continue;
+                }
+
                 if (action == "channels") {
                     g_currentState = 5; // MENU_CHANNELS
                     continue;

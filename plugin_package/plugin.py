@@ -178,13 +178,27 @@ class ImGuiHostScreen(Screen):
         plugin_path = os.path.dirname(os.path.realpath(__file__)) + "/libimgui_plugin.so"
         threading.Thread(target=run_imgui_thread, args=(xml_data, plugin_path)).start()
         
-        self.timer.start(500, False)
+        self.timer.start(250, False)
         
     def check_exit(self):
         global g_imgui_running
         
         # Check for background playback requests
         self.imgui_lib.GetPendingPlayback.restype = ctypes.c_char_p
+
+        # Poll Volume to update ImGui without breaking Enigma2's native volume handling
+        try:
+            from enigma import eDVBVolumecontrol
+            vol_ctrl = eDVBVolumecontrol.getInstance()
+            if vol_ctrl:
+                vol = vol_ctrl.getVolume()
+                if not hasattr(self, 'last_vol'): self.last_vol = vol
+                if self.last_vol != vol:
+                    self.send_action(f"vol_{vol}")
+                    self.last_vol = vol
+        except:
+            pass
+
         pending = self.imgui_lib.GetPendingPlayback()
         if pending:
             ref_str = pending.decode('utf-8')

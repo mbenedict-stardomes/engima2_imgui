@@ -25,6 +25,16 @@ void SetCurrentChannelName(const char* name) {
 static int home_selected_idx = 0;
 bool g_trigger_exit = false;
 
+int g_current_volume = 50;
+uint64_t g_volume_timer = 0;
+
+extern "C" void TriggerVolumeOverlay(int vol) {
+    g_current_volume = vol;
+    extern uint64_t get_time_ms();
+    g_volume_timer = get_time_ms();
+}
+
+
 void MainMenu_Init() {
     ChannelList_Init();
     Infobar_Init();
@@ -182,7 +192,40 @@ bool MainMenu_Render() {
         ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "     | Navigation: D-Pad | Select: OK | Exit: EXIT/POWER");
     }
 
+
+    // Render Volume Overlay
+    if (g_volume_timer > 0) {
+        if (get_time_ms() - g_volume_timer > 3000) {
+            g_volume_timer = 0;
+        } else {
+            ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 150, io.DisplaySize.y * 0.5f - 200), ImGuiCond_Always);
+            ImGui::SetNextWindowSize(ImVec2(100, 400), ImGuiCond_Always);
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.85f));
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10.0f);
+            ImGui::Begin("VolumeOverlay", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar);
+            
+            // Center text
+            ImGui::SetCursorPosX((100 - ImGui::CalcTextSize("VOL").x) * 0.5f);
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.8f, 1.0f, 1.0f));
+            ImGui::Text("VOL");
+            ImGui::PopStyleColor();
+            
+            ImGui::Spacing();
+            ImGui::SetCursorPosX((100 - 40) * 0.5f); // Center slider
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(0.4f, 0.8f, 1.0f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImVec4(0.6f, 0.9f, 1.0f, 1.0f));
+            ImGui::VSliderInt("##vol", ImVec2(40, 300), &g_current_volume, 0, 100, "%d");
+            ImGui::PopStyleColor(3);
+            
+            ImGui::End();
+            ImGui::PopStyleVar();
+            ImGui::PopStyleColor();
+        }
+    }
+
     // Process Exit Trigger ONCE
+
     if (g_trigger_exit) {
         ImGui::OpenPopup("Exit Confirmation");
         g_trigger_exit = false; // Reset trigger
