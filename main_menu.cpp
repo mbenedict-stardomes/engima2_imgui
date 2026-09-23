@@ -23,7 +23,7 @@ void SetCurrentChannelName(const char* name) {
     if (name) g_current_channel_name = name;
 }
 static int home_selected_idx = 0;
-static bool g_trigger_exit = false;
+bool g_trigger_exit = false;
 
 void MainMenu_Init() {
     ChannelList_Init();
