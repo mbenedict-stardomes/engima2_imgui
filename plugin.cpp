@@ -18,6 +18,7 @@ extern void TunerUI_Init();
 extern void Infobar_Init();
 
 extern bool g_trigger_exit;
+extern int g_currentState;
 
 static std::queue<std::string> g_action_queue;
 static std::mutex g_action_mutex;
@@ -120,6 +121,11 @@ extern "C" const char* StartImGuiPlugin() {
             while (!g_action_queue.empty()) {
                 std::string action = g_action_queue.front();
                 g_action_queue.pop();
+                
+                if (action == "channels") {
+                    g_currentState = 5; // MENU_CHANNELS
+                    continue;
+                }
                 
                 ImGuiKey imgui_key = ImGuiKey_None;
                 if (action == "up") imgui_key = ImGuiKey_UpArrow;

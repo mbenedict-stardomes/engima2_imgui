@@ -124,7 +124,7 @@ class ImGuiHostScreen(Screen):
         Screen.__init__(self, session)
         
         # High priority ActionMap to steal ALL remote control presses from Enigma2!
-        self["actions"] = ActionMap(["DirectionActions", "OkCancelActions", "ColorActions", "NumberActions", "EPGSelectActions", "InfobarEPGActions"], {
+        self["actions"] = ActionMap(["DirectionActions", "OkCancelActions", "ColorActions", "NumberActions", "EPGSelectActions", "InfobarEPGActions", "InfobarChannelSelection"], {
             "ok": self.key_ok,
             "cancel": self.key_cancel,
             "up": self.key_up,
@@ -134,6 +134,10 @@ class ImGuiHostScreen(Screen):
             "info": self.key_info,
             "epg": self.key_info,
             "showEventInfo": self.key_info,
+            "zapUp": self.key_channels,
+            "zapDown": self.key_channels,
+            "channelUp": self.key_channels,
+            "channelDown": self.key_channels,
             "1": self.dummy, "2": self.dummy, "3": self.dummy,
             "4": self.dummy, "5": self.dummy, "6": self.dummy,
             "7": self.dummy, "8": self.dummy, "9": self.dummy, "0": self.dummy
@@ -148,6 +152,7 @@ class ImGuiHostScreen(Screen):
         self.imgui_lib.SendImGuiAction.argtypes = [ctypes.c_char_p]
         
     def send_action(self, action_name):
+        print(f"[ImGui] Python ActionMap caught: {action_name}")
         self.imgui_lib.SendImGuiAction(action_name.encode('utf-8'))
         
     def key_up(self): self.send_action("up")
@@ -157,6 +162,7 @@ class ImGuiHostScreen(Screen):
     def key_ok(self): self.send_action("ok")
     def key_cancel(self): self.send_action("cancel")
     def key_info(self): self.send_action("info")
+    def key_channels(self): self.send_action("channels")
     
     def dummy(self):
         pass
