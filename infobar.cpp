@@ -59,44 +59,6 @@ extern "C" void UpdateEPGNext(const char* name, const char* desc) {
 void Infobar_Init() {
 }
 
-void Infobar_RenderSmall(const char* channel_name) {
-    ImGuiIO& io = ImGui::GetIO();
-    
-    ImVec2 infobarSize(1000, 100);
-    ImGui::SetNextWindowPos(ImVec2((io.DisplaySize.x - infobarSize.x) * 0.5f, io.DisplaySize.y - infobarSize.y - 50));
-    ImGui::SetNextWindowSize(infobarSize);
-    
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | 
-                             ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings;
-
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.05f, 0.15f, 0.85f));
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.2f, 0.4f, 0.8f, 0.5f));
-    
-    ImGui::Begin("InfobarSmall", nullptr, flags);
-    
-    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
-    ImGui::TextColored(ImVec4(1.0f, 0.9f, 0.2f, 1.0f), "Playing: %s", channel_name ? channel_name : "Unknown Channel");
-    ImGui::PopFont();
-    
-    time_t rawtime;
-    struct tm * timeinfo;
-    char timeBuffer[80];
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
-    strftime(timeBuffer, sizeof(timeBuffer), "%H:%M:%S", timeinfo);
-    
-    ImGui::SameLine(ImGui::GetWindowWidth() - 200);
-    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
-    ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "%s", timeBuffer);
-    ImGui::PopFont();
-    
-    ImGui::End();
-    ImGui::PopStyleVar(2);
-    ImGui::PopStyleColor(2);
-}
-
 void Infobar_RenderBig(const char* channel_name) {
     ImGuiIO& io = ImGui::GetIO();
     
@@ -157,17 +119,26 @@ void Infobar_RenderBig(const char* channel_name) {
     ImGui::PopFont();
     
     ImGui::Spacing();
+    ImGuiIO& io = ImGui::GetIO();
+    float bar_width = io.DisplaySize.x * 0.15f;
+    float bar_height = io.DisplaySize.y * 0.015f;
+    
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
-    char buf[32];
-    snprintf(buf, sizeof(buf), "SNR: %d%%", g_snr);
-    ImGui::ProgressBar((float)g_snr / 100.0f, ImVec2(300, 20), buf);
-    snprintf(buf, sizeof(buf), "AGC: %d%%", g_agc);
-    ImGui::ProgressBar((float)g_agc / 100.0f, ImVec2(300, 20), buf);
+    
+    ImGui::Text("SNR: %d%%", g_snr);
+    ImGui::SameLine(ImGui::GetWindowWidth() * 0.65f);
+    ImGui::ProgressBar((float)g_snr / 100.0f, ImVec2(bar_width, bar_height), "");
+    
+    ImGui::Text("AGC: %d%%", g_agc);
+    ImGui::SameLine(ImGui::GetWindowWidth() * 0.65f);
+    ImGui::ProgressBar((float)g_agc / 100.0f, ImVec2(bar_width, bar_height), "");
+    
     ImGui::PopStyleColor();
     
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
-    snprintf(buf, sizeof(buf), "BER: %d", g_ber);
-    ImGui::ProgressBar(0.0f, ImVec2(300, 20), buf);
+    ImGui::Text("BER: %d", g_ber);
+    ImGui::SameLine(ImGui::GetWindowWidth() * 0.65f);
+    ImGui::ProgressBar(0.0f, ImVec2(bar_width, bar_height), "");
     ImGui::PopStyleColor();
     
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
@@ -180,7 +151,7 @@ void Infobar_RenderBig(const char* channel_name) {
 }
 
 
-void Infobar_RenderSmall() {
+void Infobar_RenderSmall(const char* channel_name) {
     ImGuiIO& io = ImGui::GetIO();
     ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.7f, io.DisplaySize.y * 0.15f), ImGuiCond_Always);
     ImGui::SetNextWindowPos(ImVec2((io.DisplaySize.x - (io.DisplaySize.x * 0.7f)) * 0.5f, io.DisplaySize.y - (io.DisplaySize.y * 0.18f)), ImGuiCond_Always);
@@ -195,10 +166,14 @@ void Infobar_RenderSmall() {
     
     ImGui::SetCursorPos(ImVec2(s.x * 0.05f, s.y * 0.2f));
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.2f, 1.0f));
+    ImGui::TextColored(ImVec4(1.0f, 0.9f, 0.2f, 1.0f), "Playing: %s", channel_name ? channel_name : "Unknown");
+    ImGui::SetCursorPos(ImVec2(s.x * 0.05f, s.y * 0.5f));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
     ImGui::Text("NOW: %s", g_epg_now_name.c_str());
     ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
     
-    ImGui::SetCursorPos(ImVec2(s.x * 0.05f, s.y * 0.6f));
+    ImGui::SetCursorPos(ImVec2(s.x * 0.05f, s.y * 0.75f));
     ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "NEXT: %s", g_epg_next_name.c_str());
     
     ImGui::End();
