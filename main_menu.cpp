@@ -15,9 +15,9 @@ enum MenuState {
     MENU_SYSTEM
 };
 
-static MenuState g_currentState = MENU_HOME;
-static uint64_t g_infobar_timer = 0;
-static std::string g_current_channel_name = "";
+int g_currentState = 1;
+uint64_t g_infobar_timer = 0;
+std::string g_current_channel_name = "";
 
 void SetCurrentChannelName(const char* name) {
     if (name) g_current_channel_name = name;
@@ -82,7 +82,7 @@ bool MainMenu_Render() {
         // Otherwise, handle Back/Exit navigation
         if (!ImGui::IsPopupOpen("Exit Confirmation")) {
             if (g_currentState != MENU_HOME) {
-                g_currentState = MENU_HOME;
+                g_currentState = 1;
             } else {
                 g_trigger_exit = true;
             }
@@ -117,7 +117,7 @@ bool MainMenu_Render() {
             g_currentState = MENU_CHANNELS;
         }
         else if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
-            g_currentState = MENU_HOME;
+            g_currentState = 1;
         }
         else if (ImGui::IsKeyPressed(ImGuiKey_I)) { // Let's pretend "I" is info, but wait Enigma2 remote! 
             // We need a way to get "info" button. For now, let's just say RightArrow shows info!
