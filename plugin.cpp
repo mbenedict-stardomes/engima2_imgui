@@ -27,7 +27,7 @@ static std::mutex g_playback_mutex;
 
 extern "C" void SendImGuiAction(const char* action) {
     std::lock_guard<std::mutex> lock(g_action_mutex);
-    g_action_queue.push(action);
+    g_action_queue.push(action); printf("[ImGui] Received Action: %s\n", action);
 }
 
 extern "C" void TriggerPlayback(const char* ref_str) {
@@ -88,6 +88,8 @@ extern "C" const char* StartImGuiPlugin() {
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2(1920, 1080);
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     
     // Scale up fonts for 1080p TV
     ImFontConfig font_cfg;
