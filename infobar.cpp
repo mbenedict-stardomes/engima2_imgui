@@ -2,36 +2,6 @@
 #include "imgui/imgui.h"
 #include <string>
 
-#include <fstream>
-#include <sstream>
-
-std::string GetProcVal(const char* path) {
-    std::ifstream ifs(path);
-    if (!ifs.is_open()) return "?";
-    std::string val;
-    ifs >> val;
-    return val;
-}
-
-void DrawMediaSpecs() {
-    std::string xres = GetProcVal("/proc/stb/vmpeg/0/xres");
-    std::string yres = GetProcVal("/proc/stb/vmpeg/0/yres");
-    std::string prog = GetProcVal("/proc/stb/vmpeg/0/progressive");
-    std::string fps = GetProcVal("/proc/stb/vmpeg/0/framerate");
-    
-    char fps_disp[16] = "";
-    if (fps != "?") {
-        int f = std::stoi(fps);
-        snprintf(fps_disp, sizeof(fps_disp), "%d fps", f / 1000);
-    }
-    
-    std::string scan = (prog == "1") ? "p" : "i";
-    
-    ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "Video: %sx%s%s %s", xres.c_str(), yres.c_str(), scan.c_str(), fps_disp);
-    ImGui::SameLine();
-    ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), " | Audio: DVB");
-}
-
 #include <time.h>
 
 
