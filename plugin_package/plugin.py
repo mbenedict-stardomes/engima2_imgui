@@ -137,7 +137,7 @@ class ImGuiHostScreen(Screen):
             "1": self.dummy, "2": self.dummy, "3": self.dummy,
             "4": self.dummy, "5": self.dummy, "6": self.dummy,
             "7": self.dummy, "8": self.dummy, "9": self.dummy, "0": self.dummy
-        }, -1)
+        }, 100)
         
         self.onLayoutFinish.append(self.start_imgui)
         self.timer = eTimer()
