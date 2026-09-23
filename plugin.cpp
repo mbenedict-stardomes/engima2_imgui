@@ -102,12 +102,17 @@ extern "C" const char* StartImGuiPlugin() {
     TunerUI_Init();
     Infobar_Init();
 
+    uint64_t last_time = get_time_ms();
     bool keep_running = true;
 
     while (keep_running) {
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui::NewFrame();
-        
+        // 1. Calculate DeltaTime BEFORE NewFrame
+        uint64_t current_time = get_time_ms();
+        io.DeltaTime = (current_time - last_time) / 1000.0f;
+        if (io.DeltaTime <= 0.0f) io.DeltaTime = 0.016f;
+        last_time = current_time;
+
+        // 2. Process keys BEFORE NewFrame so ImGui sees the state transition
         {
             std::lock_guard<std::mutex> lock(g_action_mutex);
             while (!g_action_queue.empty()) {
@@ -130,6 +135,9 @@ extern "C" const char* StartImGuiPlugin() {
             }
         }
 
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui::NewFrame();
+        
         if (g_trigger_exit) keep_running = false;
         
         if (!MainMenu_Render()) {
