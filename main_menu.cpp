@@ -100,7 +100,8 @@ bool MainMenu_Render() {
                              ImGuiWindowFlags_NoSavedSettings |
                              ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.70f)); // Darker background
+    float bg_alpha = (g_currentState == MENU_LIVETV || g_currentState == MENU_INFOBAR_SMALL || g_currentState == MENU_INFOBAR_BIG) ? 0.0f : 0.70f;
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, bg_alpha));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     
     ImGui::Begin("Enigma2 Main Menu", nullptr, flags);
@@ -119,8 +120,8 @@ bool MainMenu_Render() {
         else if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
             g_currentState = 1;
         }
-        else if (ImGui::IsKeyPressed(ImGuiKey_I)) { // Let's pretend "I" is info, but wait Enigma2 remote! 
-            // We need a way to get "info" button. For now, let's just say RightArrow shows info!
+        else if (ImGui::IsKeyPressed(ImGuiKey_I)) {
+            g_currentState = MENU_INFOBAR_BIG;
         }
     }
     else if (g_currentState == MENU_HOME) {
@@ -135,7 +136,7 @@ bool MainMenu_Render() {
         }
         
         // Pressing OK or RightArrow while small infobar is up shows BIG infobar
-        if (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
+        if (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_RightArrow) || ImGui::IsKeyPressed(ImGuiKey_I)) {
             g_currentState = MENU_INFOBAR_BIG;
         }
     }
@@ -165,17 +166,19 @@ bool MainMenu_Render() {
         ImGui::Text("Coming soon...");
     }
 
-    // Classic Enigma2 Footer (Color Buttons)
-    ImGui::SetCursorPosY(io.DisplaySize.y - 60);
-    ImGui::Separator();
-    
-    // Render color buttons
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1)); ImGui::Text("  Red  "); ImGui::PopStyleColor(); ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 1, 0, 1)); ImGui::Text(" Green "); ImGui::PopStyleColor(); ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 0, 1)); ImGui::Text(" Yellow"); ImGui::PopStyleColor(); ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 0, 1, 1)); ImGui::Text(" Blue  "); ImGui::PopStyleColor(); ImGui::SameLine();
-    
-    ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "     | Navigation: D-Pad | Select: OK | Exit: EXIT/POWER");
+    if (g_currentState != MENU_LIVETV && g_currentState != MENU_INFOBAR_SMALL && g_currentState != MENU_INFOBAR_BIG) {
+        // Classic Enigma2 Footer (Color Buttons)
+        ImGui::SetCursorPosY(io.DisplaySize.y - 60);
+        ImGui::Separator();
+        
+        // Render color buttons
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1)); ImGui::Text("  Red  "); ImGui::PopStyleColor(); ImGui::SameLine();
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 1, 0, 1)); ImGui::Text(" Green "); ImGui::PopStyleColor(); ImGui::SameLine();
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 0, 1)); ImGui::Text(" Yellow"); ImGui::PopStyleColor(); ImGui::SameLine();
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 0, 1, 1)); ImGui::Text(" Blue  "); ImGui::PopStyleColor(); ImGui::SameLine();
+        
+        ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "     | Navigation: D-Pad | Select: OK | Exit: EXIT/POWER");
+    }
 
     // Process Exit Trigger ONCE
     if (g_trigger_exit) {
