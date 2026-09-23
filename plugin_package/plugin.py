@@ -243,9 +243,10 @@ class ImGuiHostScreen(Screen):
                 if feinfo:
                     fe_data = feinfo.getFrontendData() if hasattr(feinfo, 'getFrontendData') else None
                     if fe_data:
-                        snr = fe_data.get('tuner_signal_quality', fe_data.get('snr', 0))
-                        agc = fe_data.get('tuner_signal_power', fe_data.get('agc', 0))
-                        ber = fe_data.get('tuner_bit_error_rate', fe_data.get('ber', 0))
+                        fe_status = feinfo.getFrontendStatus() if hasattr(feinfo, 'getFrontendStatus') else {}
+                        snr = fe_status.get('tuner_signal_quality', fe_status.get('snr', fe_data.get('snr', 0)))
+                        agc = fe_status.get('tuner_signal_power', fe_status.get('agc', fe_data.get('agc', 0)))
+                        ber = fe_status.get('tuner_bit_error_rate', fe_status.get('ber', fe_data.get('ber', 0)))
                         
 
                         # Convert out of 65536 if needed
