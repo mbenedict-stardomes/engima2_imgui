@@ -124,7 +124,7 @@ class ImGuiHostScreen(Screen):
         Screen.__init__(self, session)
         
         # High priority ActionMap to steal ALL remote control presses from Enigma2!
-        self["actions"] = ActionMap(["DirectionActions", "OkCancelActions", "ColorActions", "NumberActions", "EPGSelectActions", "InfobarEPGActions", "InfobarChannelSelection"], {
+        self["actions"] = ActionMap(["DirectionActions", "OkCancelActions", "ColorActions", "NumberActions", "EPGSelectActions", "InfobarEPGActions", "InfobarChannelSelection", "InfobarMenuActions", "SetupActions"], {
             "ok": self.key_ok,
             "cancel": self.key_cancel,
             "up": self.key_up,
@@ -138,6 +138,8 @@ class ImGuiHostScreen(Screen):
             "zapDown": self.key_channels,
             "channelUp": self.key_channels,
             "channelDown": self.key_channels,
+            "mainMenu": self.key_menu,
+            "menu": self.key_menu,
             "1": self.dummy, "2": self.dummy, "3": self.dummy,
             "4": self.dummy, "5": self.dummy, "6": self.dummy,
             "7": self.dummy, "8": self.dummy, "9": self.dummy, "0": self.dummy
@@ -163,6 +165,7 @@ class ImGuiHostScreen(Screen):
     def key_cancel(self): self.send_action("cancel")
     def key_info(self): self.send_action("info")
     def key_channels(self): self.send_action("channels")
+    def key_menu(self): self.send_action("menu")
     
     def dummy(self):
         pass

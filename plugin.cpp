@@ -159,6 +159,11 @@ extern "C" const char* StartImGuiPlugin() {
                     continue;
                 }
 
+
+                if (action == "menu") {
+                    g_currentState = 1; // MENU_HOME
+                    continue;
+                }
                 if (action == "channels") {
                     g_currentState = 5; // MENU_CHANNELS
                     continue;

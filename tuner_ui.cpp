@@ -54,6 +54,9 @@ void TunerUI_Render() {
         ImGui::SetKeyboardFocusHere();
     }
     
+    ImGui::Columns(2, "TunerColumns", false);
+    ImGui::SetColumnWidth(0, 600); // Left column
+    
     // Satellite Combo
     const char* preview_sat = g_satellites[current_sat_idx].name.c_str();
     if (ImGui::BeginCombo("Satellite", preview_sat)) {
@@ -103,8 +106,13 @@ void TunerUI_Render() {
     }
     
     ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::Spacing();
+    if (ImGui::Button("Start Blindscan", ImVec2(180, 50))) {}
+    ImGui::SameLine();
+    if (ImGui::Button("Manual Scan", ImVec2(180, 50))) {}
+    ImGui::SameLine();
+    if (ImGui::Button("Auto Scan", ImVec2(180, 50))) {}
+    
+    ImGui::NextColumn(); // MOVE TO RIGHT COLUMN
     
     extern int g_snr, g_agc, g_ber;
     
@@ -179,16 +187,5 @@ void TunerUI_Render() {
     
     ImGui::Dummy(canvas_size); // Reserve space for custom drawing
     
-    ImGui::Spacing();
-    if (ImGui::Button("Start Blindscan", ImVec2(200, 50))) {
-        // Do blindscan
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Manual Scan", ImVec2(200, 50))) {
-        // Do manual scan
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Auto Scan", ImVec2(200, 50))) {
-        // Do auto scan
-    }
+    ImGui::Columns(1);
 }

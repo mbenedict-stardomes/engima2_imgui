@@ -56,8 +56,8 @@ void RenderHome() {
     ImGui::Separator();
     ImGui::Spacing();
     
-    const char* items[] = { "Live TV Channel List", "Show GlassHD Infobar", "Tuner Setup / Signal Finder", "Network Configuration", "System Settings", "Standby / Restart / Exit" };
-    for (int i = 0; i < 6; i++) {
+    const char* items[] = { "Resume Live TV Playback", "Live TV Channel List", "Show GlassHD Infobar", "Tuner Setup / Signal Finder", "Network Configuration", "System Settings", "Exit ImGui Framework" };
+    for (int i = 0; i < 7; i++) {
         // If the window is appearing (e.g. startup or returning from Tuner), force focus to the active item
         if (home_selected_idx == i && ImGui::IsWindowAppearing()) {
             ImGui::SetKeyboardFocusHere();
@@ -65,12 +65,13 @@ void RenderHome() {
 
         // Pass 'false' for selected state so we don't get a persistent second blue bar
         if (ImGui::Selectable(items[i], false, 0, ImVec2(0, 50))) {
-            if (i == 0) g_currentState = MENU_CHANNELS;
-            if (i == 1) g_currentState = MENU_INFOBAR_BIG;
-            if (i == 2) g_currentState = MENU_TUNER;
-            if (i == 3) g_currentState = MENU_NETWORK;
-            if (i == 4) g_currentState = MENU_SYSTEM;
-            if (i == 5) g_trigger_exit = true; // Trigger exit from menu item!
+            if (i == 0) g_currentState = MENU_LIVETV;
+            if (i == 1) g_currentState = MENU_CHANNELS;
+            if (i == 2) g_currentState = MENU_INFOBAR_BIG;
+            if (i == 3) g_currentState = MENU_TUNER;
+            if (i == 4) g_currentState = MENU_NETWORK;
+            if (i == 5) g_currentState = MENU_SYSTEM;
+            if (i == 6) g_trigger_exit = true;
         }
         
         // Track the currently focused item via D-Pad so we can restore it later
@@ -88,13 +89,13 @@ bool MainMenu_Render() {
     
     // Global Back/Exit handler
     if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
-        // If the popup is open, ESC closes it (handled inside BeginPopupModal)
-        // Otherwise, handle Back/Exit navigation
         if (!ImGui::IsPopupOpen("Exit Confirmation")) {
             if (g_currentState != MENU_HOME) {
-                g_currentState = 1;
+                // If we are in Tuner or Setup, go back to Home
+                g_currentState = MENU_HOME;
             } else {
-                g_trigger_exit = true;
+                // If we are in Home, ESC drops the UI to Live TV!
+                g_currentState = MENU_LIVETV;
             }
         }
     }
