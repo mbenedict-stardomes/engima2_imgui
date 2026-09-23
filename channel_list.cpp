@@ -102,42 +102,62 @@ void ChannelList_Render() {
     ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.6f);
     
     // --- LEFT PANE: Channel List ---
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.8f, 1.0f, 1.0f));
-    ImGui::Text("%s", bq.name.c_str());
-    ImGui::PopStyleColor();
-    ImGui::Separator();
+    static int pending_bouquet_switch = -1;
+    if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
+        if (current_bouquet_idx > 0) pending_bouquet_switch = current_bouquet_idx - 1;
+    }
+    if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
+        if (current_bouquet_idx < g_bouquets.size() - 1) pending_bouquet_switch = current_bouquet_idx + 1;
+    }
     
-    // We use a Child window for scrolling
-    ImGui::BeginChild("ChannelScrollingRegion", ImVec2(0, ImGui::GetWindowHeight() - 150));
-    for (int i = 0; i < bq.channels.size(); ++i) {
-        if (current_channel_idx == i && ImGui::IsWindowAppearing()) {
-            ImGui::SetKeyboardFocusHere();
-        }
-        
-        char label[128];
-        snprintf(label, sizeof(label), "%3d   %s", bq.channels[i].number, bq.channels[i].name.c_str());
-        
-        if (ImGui::Selectable(label, false, 0, ImVec2(0, 40))) {
-            // Mouse click support
-            current_channel_idx = i;
-            TriggerPlayback(bq.channels[i].ref.c_str());
-            SetCurrentChannelName(bq.channels[i].name.c_str());
-            g_infobar_timer = get_time_ms();
-            g_currentState = 2; // MENU_INFOBAR_SMALL
-        }
-        
-        if (ImGui::IsItemFocused()) {
-            current_channel_idx = i;
-            // Physical remote OK button support
-            if (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_Space)) {
-                TriggerPlayback(bq.channels[i].ref.c_str());
-                SetCurrentChannelName(bq.channels[i].name.c_str());
-                g_infobar_timer = get_time_ms();
-                g_currentState = 2; // MENU_INFOBAR_SMALL
+    if (ImGui::BeginTabBar("BouquetTabs", ImGuiTabBarFlags_FittingPolicyScroll)) {
+        for (int b = 0; b < g_bouquets.size(); ++b) {
+            ImGuiTabItemFlags flags = 0;
+            if (pending_bouquet_switch == b) {
+                flags |= ImGuiTabItemFlags_SetSelected;
+                if (b == g_bouquets.size() - 1 || pending_bouquet_switch == 0) pending_bouquet_switch = -1; // reset when edge reached
+            }
+            
+            if (ImGui::BeginTabItem(g_bouquets[b].name.c_str(), nullptr, flags)) {
+                if (current_bouquet_idx != b) {
+                    current_bouquet_idx = b;
+                    current_channel_idx = 0;
+                }
+                
+                ImGui::BeginChild("ChannelScrollingRegion", ImVec2(0, ImGui::GetWindowHeight() - 150));
+                for (int i = 0; i < g_bouquets[b].channels.size(); ++i) {
+                    if (current_channel_idx == i && ImGui::IsWindowAppearing()) {
+                        ImGui::SetKeyboardFocusHere();
+                    }
+                    
+                    char label[128];
+                    snprintf(label, sizeof(label), "%3d   %s", g_bouquets[b].channels[i].number, g_bouquets[b].channels[i].name.c_str());
+                    
+                    if (ImGui::Selectable(label, false, 0, ImVec2(0, 40))) {
+                        current_channel_idx = i;
+                        TriggerPlayback(g_bouquets[b].channels[i].ref.c_str());
+                        SetCurrentChannelName(g_bouquets[b].channels[i].name.c_str());
+                        g_infobar_timer = get_time_ms();
+                        g_currentState = 2; // MENU_INFOBAR_SMALL
+                    }
+                    
+                    if (ImGui::IsItemFocused()) {
+                        current_channel_idx = i;
+                        if (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_Space)) {
+                            TriggerPlayback(g_bouquets[b].channels[i].ref.c_str());
+                            SetCurrentChannelName(g_bouquets[b].channels[i].name.c_str());
+                            g_infobar_timer = get_time_ms();
+                            g_currentState = 2; // MENU_INFOBAR_SMALL
+                        }
+                    }
+                }
+                ImGui::EndChild();
+                ImGui::EndTabItem();
             }
         }
+        ImGui::EndTabBar();
+        if (pending_bouquet_switch != -1) pending_bouquet_switch = -1;
     }
-    ImGui::EndChild();
     
     ImGui::NextColumn();
     
@@ -185,17 +205,4 @@ void ChannelList_Render() {
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 0, 1)); ImGui::Text(" Provider"); ImGui::PopStyleColor(); ImGui::SameLine();
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 0, 1, 1)); ImGui::Text(" Favourites  "); ImGui::PopStyleColor();
     
-    // Handle Left/Right D-Pad to switch bouquets
-    if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
-        if (current_bouquet_idx > 0) {
-            current_bouquet_idx--;
-            current_channel_idx = 0;
-        }
-    }
-    if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
-        if (current_bouquet_idx < g_bouquets.size() - 1) {
-            current_bouquet_idx++;
-            current_channel_idx = 0;
-        }
-    }
 }

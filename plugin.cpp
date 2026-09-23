@@ -167,14 +167,19 @@ extern "C" const char* StartImGuiPlugin() {
                 }
 
                 if (action == "info") {
-                    if (g_currentState == MENU_LIVETV) { // LIVETV -> SMALL
+                    extern uint64_t g_infobar_timer;
+                    extern uint64_t get_time_ms();
+                    if (g_currentState == MENU_LIVETV) {
                         g_currentState = MENU_INFOBAR_SMALL; 
-                    } else if (g_currentState == MENU_INFOBAR_SMALL) { // SMALL -> BIG
+                        g_infobar_timer = get_time_ms();
+                    } else if (g_currentState == MENU_INFOBAR_SMALL) {
                         g_currentState = MENU_INFOBAR_BIG;
-                    } else if (g_currentState == MENU_INFOBAR_BIG) { // BIG -> LIVETV
+                        g_infobar_timer = get_time_ms();
+                    } else if (g_currentState == MENU_INFOBAR_BIG) {
                         g_currentState = MENU_LIVETV;
                     } else {
                         g_currentState = MENU_INFOBAR_SMALL;
+                        g_infobar_timer = get_time_ms();
                     }
                     continue;
                 }
