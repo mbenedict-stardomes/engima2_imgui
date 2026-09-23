@@ -46,6 +46,7 @@ void DrawMediaSpecs() {
 }
 
 int g_snr = 0, g_agc = 0, g_ber = 0;
+std::string g_ext_telemetry = "";
 std::string g_epg_now_name = "Loading...";
 std::string g_epg_now_desc = "";
 std::string g_epg_next_name = "Loading...";
