@@ -102,7 +102,7 @@ bool MainMenu_Render() {
                              ImGuiWindowFlags_NoSavedSettings |
                              ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-    float bg_alpha = (g_currentState == MENU_LIVETV || g_currentState == MENU_INFOBAR_SMALL || g_currentState == MENU_INFOBAR_BIG) ? 0.0f : 0.30f;
+    float bg_alpha = (g_currentState == MENU_LIVETV || g_currentState == MENU_INFOBAR_SMALL || g_currentState == MENU_INFOBAR_BIG) ? 0.0f : 0.90f;
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, bg_alpha));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     
