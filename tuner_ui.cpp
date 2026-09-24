@@ -318,8 +318,16 @@ void TunerUI_Render() {
             extern int g_snr, g_agc, g_ber;
             
             // CONSTELLATION DIAGRAM
+            ImGui::Spacing(); ImGui::Spacing();
             ImGui::Text("Constellation Diagram (IQ Plot)");
             ImVec2 canvas_p = ImGui::GetCursorScreenPos();
+            // Center the canvas horizontally within the column
+            float avail = ImGui::GetContentRegionAvail().x;
+            float canvas_w = ImGui::GetWindowWidth() * 0.25f;
+            if (avail > canvas_w) {
+                canvas_p.x += (avail - canvas_w) * 0.5f;
+                ImGui::SetCursorScreenPos(canvas_p);
+            }
             // Reduce size from 0.35f to 0.25f to fit screen
             ImVec2 canvas_size = ImVec2(ImGui::GetWindowWidth() * 0.25f, ImGui::GetWindowWidth() * 0.25f);
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
@@ -329,8 +337,10 @@ void TunerUI_Render() {
             draw_list->AddLine(ImVec2(canvas_p.x + canvas_size.x/2, canvas_p.y), ImVec2(canvas_p.x + canvas_size.x/2, canvas_p.y + canvas_size.y), IM_COL32(255, 255, 255, 100));
             draw_list->AddLine(ImVec2(canvas_p.x, canvas_p.y + canvas_size.y/2), ImVec2(canvas_p.x + canvas_size.x, canvas_p.y + canvas_size.y/2), IM_COL32(255, 255, 255, 100));
             
-            float noise_radius = (100.0f - g_snr) * (canvas_size.x / 100.0f); // Scale noise radius dynamically
-            if (noise_radius < 5.0f) noise_radius = 5.0f;
+            // Dynamically scale noise to keep clusters tight (max 12% of canvas, min 1%)
+            float max_noise = canvas_size.x * 0.12f;
+            float noise_radius = ((100.0f - g_snr) / 100.0f) * max_noise;
+            if (noise_radius < canvas_size.x * 0.01f) noise_radius = canvas_size.x * 0.01f;
             
             int num_clusters = 4; // Default QPSK
             ImU32 point_col = IM_COL32(50, 255, 50, 255);
@@ -432,8 +442,15 @@ void TunerUI_Render() {
             extern int g_snr, g_agc;
             
             // CONSTELLATION DIAGRAM
+            ImGui::Spacing(); ImGui::Spacing();
             ImGui::Text("Constellation Diagram (QAM64 Plot)");
             ImVec2 canvas_p = ImGui::GetCursorScreenPos();
+            float avail = ImGui::GetContentRegionAvail().x;
+            float canvas_w = ImGui::GetWindowWidth() * 0.25f;
+            if (avail > canvas_w) {
+                canvas_p.x += (avail - canvas_w) * 0.5f;
+                ImGui::SetCursorScreenPos(canvas_p);
+            }
             ImVec2 canvas_size = ImVec2(ImGui::GetWindowWidth() * 0.25f, ImGui::GetWindowWidth() * 0.25f);
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
             
@@ -442,8 +459,11 @@ void TunerUI_Render() {
             draw_list->AddLine(ImVec2(canvas_p.x + canvas_size.x/2, canvas_p.y), ImVec2(canvas_p.x + canvas_size.x/2, canvas_p.y + canvas_size.y), IM_COL32(255, 255, 255, 100));
             draw_list->AddLine(ImVec2(canvas_p.x, canvas_p.y + canvas_size.y/2), ImVec2(canvas_p.x + canvas_size.x, canvas_p.y + canvas_size.y/2), IM_COL32(255, 255, 255, 100));
             
-            float noise_radius = (100.0f - g_snr) * (canvas_size.x / 100.0f);
-            if (noise_radius < 5.0f) noise_radius = 5.0f;
+            // For QAM64, step is 10% of canvas. Noise must not exceed 4% to prevent cluster overlap.
+            float step = canvas_size.x / 10.0f;
+            float max_noise = step * 0.35f;
+            float noise_radius = ((100.0f - g_snr) / 100.0f) * max_noise;
+            if (noise_radius < 2.0f) noise_radius = 2.0f;
             
             ImU32 point_col = IM_COL32(50, 150, 255, 255);
             if (g_snr < 50) point_col = IM_COL32(255, 255, 50, 255);
@@ -451,8 +471,6 @@ void TunerUI_Render() {
             
             float center_x = canvas_p.x + canvas_size.x / 2.0f;
             float center_y = canvas_p.y + canvas_size.y / 2.0f;
-            float step = canvas_size.x / 10.0f;
-            
             for (int ix = -4; ix < 4; ix++) {
                 for (int iy = -4; iy < 4; iy++) {
                     float cx = center_x + (ix + 0.5f) * step;
@@ -515,8 +533,15 @@ void TunerUI_Render() {
             extern int g_snr, g_agc;
             
             // CONSTELLATION DIAGRAM
+            ImGui::Spacing(); ImGui::Spacing();
             ImGui::Text("Constellation Diagram (QAM64 Plot)");
             ImVec2 canvas_p = ImGui::GetCursorScreenPos();
+            float avail = ImGui::GetContentRegionAvail().x;
+            float canvas_w = ImGui::GetWindowWidth() * 0.25f;
+            if (avail > canvas_w) {
+                canvas_p.x += (avail - canvas_w) * 0.5f;
+                ImGui::SetCursorScreenPos(canvas_p);
+            }
             ImVec2 canvas_size = ImVec2(ImGui::GetWindowWidth() * 0.25f, ImGui::GetWindowWidth() * 0.25f);
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
             
@@ -525,8 +550,11 @@ void TunerUI_Render() {
             draw_list->AddLine(ImVec2(canvas_p.x + canvas_size.x/2, canvas_p.y), ImVec2(canvas_p.x + canvas_size.x/2, canvas_p.y + canvas_size.y), IM_COL32(255, 255, 255, 100));
             draw_list->AddLine(ImVec2(canvas_p.x, canvas_p.y + canvas_size.y/2), ImVec2(canvas_p.x + canvas_size.x, canvas_p.y + canvas_size.y/2), IM_COL32(255, 255, 255, 100));
             
-            float noise_radius = (100.0f - g_snr) * (canvas_size.x / 100.0f);
-            if (noise_radius < 5.0f) noise_radius = 5.0f;
+            // For QAM64, step is 10% of canvas. Noise must not exceed 4% to prevent cluster overlap.
+            float step = canvas_size.x / 10.0f;
+            float max_noise = step * 0.35f;
+            float noise_radius = ((100.0f - g_snr) / 100.0f) * max_noise;
+            if (noise_radius < 2.0f) noise_radius = 2.0f;
             
             ImU32 point_col = IM_COL32(255, 150, 50, 255);
             if (g_snr < 50) point_col = IM_COL32(255, 255, 50, 255);
@@ -534,8 +562,6 @@ void TunerUI_Render() {
             
             float center_x = canvas_p.x + canvas_size.x / 2.0f;
             float center_y = canvas_p.y + canvas_size.y / 2.0f;
-            float step = canvas_size.x / 10.0f;
-            
             for (int ix = -4; ix < 4; ix++) {
                 for (int iy = -4; iy < 4; iy++) {
                     float cx = center_x + (ix + 0.5f) * step;
