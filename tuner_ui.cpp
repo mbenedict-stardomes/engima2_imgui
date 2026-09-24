@@ -61,8 +61,16 @@ void TunerUI_Render() {
             ImGui::Spacing();
             
             static int selected_tuner = 0;
-            ImGui::RadioButton("Tuner A", &selected_tuner, 0); ImGui::SameLine(200);
-            ImGui::RadioButton("Tuner B", &selected_tuner, 1);
+            if (g_hardware_tuners.empty()) {
+                ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Loading hardware tuners from Enigma2 IPC...");
+            } else {
+                for (size_t i = 0; i < g_hardware_tuners.size(); i++) {
+                    char label[128];
+                    snprintf(label, sizeof(label), "Tuner %c (%s)", 'A' + g_hardware_tuners[i].slot_id, g_hardware_tuners[i].name.c_str());
+                    ImGui::RadioButton(label, &selected_tuner, i);
+                    if (i < g_hardware_tuners.size() - 1) ImGui::SameLine(200);
+                }
+            }
             
             ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
             
