@@ -78,7 +78,7 @@ void TunerUI_Render() {
                     char label[128];
                     snprintf(label, sizeof(label), "Tuner %c (%s)", 'A' + g_hardware_tuners[i].slot_id, g_hardware_tuners[i].name.c_str());
                     ImGui::RadioButton(label, &selected_tuner, i);
-                    if (i < g_hardware_tuners.size() - 1) ImGui::SameLine(200);
+                    if (i < g_hardware_tuners.size() - 1) ImGui::SameLine(0, 30.0f);
                 }
             }
             
@@ -278,7 +278,12 @@ void TunerUI_Render() {
             
             ImGui::Spacing(); ImGui::Spacing();
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
-            if (ImGui::Button("START SCAN", ImVec2(300, 60))) {}
+            extern "C" void TriggerPlayback(const char* ref_str);
+            if (ImGui::Button("START SCAN", ImVec2(300, 60))) {
+                char scan_action[128];
+                snprintf(scan_action, sizeof(scan_action), "start_scan|%d", scan_type);
+                TriggerPlayback(scan_action);
+            }
             ImGui::PopStyleColor();
             
             ImGui::EndTabItem();
