@@ -166,6 +166,22 @@ extern "C" const char* StartImGuiPlugin() {
                     }
                     continue;
                 }
+                if (action.rfind("hw_tuners|", 0) == 0) {
+                    std::string payload = action.substr(10);
+                    std::vector<std::string> nims = split(payload, '^');
+                    g_hardware_tuners.clear();
+                    for (const auto& nim : nims) {
+                        std::vector<std::string> t_parts = split(nim, '|');
+                        if (t_parts.size() >= 3) {
+                            HardwareTuner t;
+                            t.slot_id = std::stoi(t_parts[0]);
+                            t.name = t_parts[1];
+                            t.type_flags = t_parts[2];
+                            g_hardware_tuners.push_back(t);
+                        }
+                    }
+                    continue;
+                }
 
 
                 if (action == "menu") {
