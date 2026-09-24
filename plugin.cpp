@@ -8,6 +8,7 @@ struct HardwareTuner {
     std::string name;
     std::string type_flags;
 };
+std::vector<HardwareTuner> g_hardware_tuners;
 
 static std::vector<std::string> split(const std::string &s, char delim) {
     std::vector<std::string> result;
