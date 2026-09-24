@@ -1,3 +1,24 @@
+
+#include <vector>
+#include <string>
+#include <sstream>
+
+struct HardwareTuner {
+    int slot_id;
+    std::string name;
+    std::string type_flags;
+};
+
+static std::vector<std::string> split(const std::string &s, char delim) {
+    std::vector<std::string> result;
+    std::stringstream ss(s);
+    std::string item;
+    while (getline(ss, item, delim)) {
+        result.push_back(item);
+    }
+    return result;
+}
+
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
 #include "imgui/imgui.h"
