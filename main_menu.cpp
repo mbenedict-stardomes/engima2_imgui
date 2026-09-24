@@ -102,7 +102,11 @@ bool MainMenu_Render() {
                              ImGuiWindowFlags_NoSavedSettings |
                              ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-    float bg_alpha = 0.0f;
+    // Reverse Video mode: completely solid black background for all menus except Live TV / Infobars
+    float bg_alpha = 1.0f;
+    if (g_currentState == MENU_LIVETV || g_currentState == MENU_INFOBAR_SMALL || g_currentState == MENU_INFOBAR_BIG) {
+        bg_alpha = 0.0f;
+    }
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, bg_alpha));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     
