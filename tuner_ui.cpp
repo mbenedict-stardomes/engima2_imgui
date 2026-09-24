@@ -158,7 +158,7 @@ void TunerUI_Render() {
                 ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Transponder Parameters:");
                 ImGui::Separator(); ImGui::Spacing();
                 
-                ImGui::PushItemWidth(io.DisplaySize.x * 0.2f);
+                ImGui::PushItemWidth(ImGui::GetColumnWidth(0) * 0.5f);
                 int mod_freq = curr_ts.frequency / 1000;
                 ImGui::InputInt("Frequency (MHz)", &mod_freq);
                 
@@ -207,7 +207,7 @@ void TunerUI_Render() {
             
             ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
             
-            ImGui::PushItemWidth(io.DisplaySize.x * 0.3f);
+            ImGui::PushItemWidth(ImGui::GetColumnWidth(0) * 0.5f);
             if (scan_type == 0) {
                 static int auto_tuner = 0;
                 ImGui::Combo("Tuner", &auto_tuner, "All Tuners\0Tuner A (DVB-S2)\0Tuner B (DVB-T2)\0");
@@ -276,7 +276,7 @@ void TunerUI_Render() {
             ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.45f);
             
             ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Tune to Satellite & Transponder:");
-            ImGui::PushItemWidth(io.DisplaySize.x * 0.35f);
+            ImGui::PushItemWidth(ImGui::GetColumnWidth(0) * 0.5f);
             
             const char* preview_sat = g_satellites.empty() ? "None" : g_satellites[current_sat_idx].name.c_str();
             if (ImGui::BeginCombo("Satellite##Find", preview_sat)) {
@@ -319,7 +319,11 @@ void TunerUI_Render() {
             
             // CONSTELLATION DIAGRAM
             ImGui::Spacing(); ImGui::Spacing();
-            ImGui::Text("Constellation Diagram (IQ Plot)");
+            const char* iq_title = "Constellation Diagram\n(IQ Plot)";
+            ImVec2 txt_size = ImGui::CalcTextSize(iq_title);
+            float avail_txt = ImGui::GetContentRegionAvail().x;
+            if (avail_txt > txt_size.x) ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (avail_txt - txt_size.x) * 0.5f);
+            ImGui::Text("%s", iq_title);
             ImVec2 canvas_p = ImGui::GetCursorScreenPos();
             // Center the canvas horizontally within the column
             float avail = ImGui::GetContentRegionAvail().x;
@@ -382,8 +386,6 @@ void TunerUI_Render() {
             ImGui::ProgressBar(g_ber > 100 ? 1.0f : g_ber / 100.0f, ImVec2(-1.0f, 40.0f), buf);
             ImGui::PopStyleColor();
             
-            ImGui::Columns(1);
-            
             ImGui::EndTabItem();
         }
         
@@ -398,7 +400,7 @@ void TunerUI_Render() {
             ImGui::Columns(2, "TerrFinderCols", false);
             ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.45f);
             
-            ImGui::PushItemWidth(io.DisplaySize.x * 0.3f);
+            ImGui::PushItemWidth(ImGui::GetColumnWidth(0) * 0.5f);
             
             static int terr_channel = 21;
             if (ImGui::InputInt("Channel (VHF/UHF)", &terr_channel, 1, 5)) {
@@ -443,7 +445,11 @@ void TunerUI_Render() {
             
             // CONSTELLATION DIAGRAM
             ImGui::Spacing(); ImGui::Spacing();
-            ImGui::Text("Constellation Diagram (QAM64 Plot)");
+            const char* qam_title = "Constellation Diagram\n(QAM64 Plot)";
+            ImVec2 txt_size2 = ImGui::CalcTextSize(qam_title);
+            float avail_txt2 = ImGui::GetContentRegionAvail().x;
+            if (avail_txt2 > txt_size2.x) ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (avail_txt2 - txt_size2.x) * 0.5f);
+            ImGui::Text("%s", qam_title);
             ImVec2 canvas_p = ImGui::GetCursorScreenPos();
             float avail = ImGui::GetContentRegionAvail().x;
             float canvas_w = ImGui::GetWindowWidth() * 0.25f;
@@ -484,7 +490,8 @@ void TunerUI_Render() {
             }
             ImGui::Dummy(canvas_size);
             
-            ImGui::Spacing(); ImGui::Spacing();
+            ImGui::Columns(1);
+            ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
             ImGui::Text("Live Lock Metrics");
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.6f, 0.9f, 1.0f));
             char buf[32]; sprintf(buf, "SNR %d%%", g_snr);
@@ -496,8 +503,6 @@ void TunerUI_Render() {
             sprintf(buf, "AGC %d%%", g_agc);
             ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 40.0f), buf);
             ImGui::PopStyleColor();
-            
-            ImGui::Columns(1);
             
             ImGui::EndTabItem();
         }
@@ -513,7 +518,7 @@ void TunerUI_Render() {
             ImGui::Columns(2, "CableFinderCols", false);
             ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.45f);
             
-            ImGui::PushItemWidth(io.DisplaySize.x * 0.3f);
+            ImGui::PushItemWidth(ImGui::GetColumnWidth(0) * 0.5f);
             
             static int cab_freq = 410000;
             static int cab_sr = 6900;
@@ -534,7 +539,11 @@ void TunerUI_Render() {
             
             // CONSTELLATION DIAGRAM
             ImGui::Spacing(); ImGui::Spacing();
-            ImGui::Text("Constellation Diagram (QAM64 Plot)");
+            const char* qam_title = "Constellation Diagram\n(QAM64 Plot)";
+            ImVec2 txt_size2 = ImGui::CalcTextSize(qam_title);
+            float avail_txt2 = ImGui::GetContentRegionAvail().x;
+            if (avail_txt2 > txt_size2.x) ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (avail_txt2 - txt_size2.x) * 0.5f);
+            ImGui::Text("%s", qam_title);
             ImVec2 canvas_p = ImGui::GetCursorScreenPos();
             float avail = ImGui::GetContentRegionAvail().x;
             float canvas_w = ImGui::GetWindowWidth() * 0.25f;
@@ -575,7 +584,8 @@ void TunerUI_Render() {
             }
             ImGui::Dummy(canvas_size);
             
-            ImGui::Spacing(); ImGui::Spacing();
+            ImGui::Columns(1);
+            ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
             ImGui::Text("Live Lock Metrics");
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.9f, 0.4f, 0.2f, 1.0f));
             char buf[32]; sprintf(buf, "SNR %d%%", g_snr);
@@ -587,8 +597,6 @@ void TunerUI_Render() {
             sprintf(buf, "AGC %d%%", g_agc);
             ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 40.0f), buf);
             ImGui::PopStyleColor();
-            
-            ImGui::Columns(1);
             
             ImGui::EndTabItem();
         }
