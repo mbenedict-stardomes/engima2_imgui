@@ -1,6 +1,7 @@
 from Plugins.Plugin import PluginDescriptor
 from Screens.Screen import Screen
 from Components.ActionMap import ActionMap
+from Components.NimManager import nimmanager
 from enigma import eServiceReference, eServiceCenter, eTimer
 import ctypes
 
@@ -213,6 +214,28 @@ class ImGuiHostScreen(Screen):
         threading.Thread(target=run_imgui_thread, args=(xml_data, plugin_path)).start()
         
         self.timer.start(250, False)
+        
+        try:
+            tuner_info = []
+            for slot in nimmanager.nim_slots:
+                if not slot.empty:
+                    types = []
+                    if slot.isCompatible("DVB-S2"): types.append("DVB-S2")
+                    elif slot.isCompatible("DVB-S"): types.append("DVB-S")
+                    
+                    if slot.isCompatible("DVB-T2"): types.append("DVB-T2")
+                    elif slot.isCompatible("DVB-T"): types.append("DVB-T")
+                    
+                    if slot.isCompatible("DVB-C"): types.append("DVB-C")
+                    
+                    type_str = ",".join(types)
+                    tuner_info.append(f"{slot.slot}|{slot.description}|{type_str}")
+            
+            if tuner_info:
+                payload = "^".join(tuner_info)
+                self.send_action(f"hw_tuners|{payload}")
+        except Exception as e:
+            print(f"[ImGui] Failed to enumerate tuners: {e}")
         
     def check_exit(self):
         global g_imgui_running
