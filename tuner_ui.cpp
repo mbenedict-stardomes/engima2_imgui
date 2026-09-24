@@ -327,13 +327,13 @@ void TunerUI_Render() {
             ImVec2 canvas_p = ImGui::GetCursorScreenPos();
             // Center the canvas horizontally within the column
             float avail = ImGui::GetContentRegionAvail().x;
-            float canvas_w = ImGui::GetWindowWidth() * 0.25f;
+            float canvas_w = ImGui::GetWindowWidth() * 0.20f;
             if (avail > canvas_w) {
                 canvas_p.x += (avail - canvas_w) * 0.5f;
                 ImGui::SetCursorScreenPos(canvas_p);
             }
             // Reduce size from 0.35f to 0.25f to fit screen
-            ImVec2 canvas_size = ImVec2(ImGui::GetWindowWidth() * 0.25f, ImGui::GetWindowWidth() * 0.25f);
+            ImVec2 canvas_size = ImVec2(ImGui::GetWindowWidth() * 0.20f, ImGui::GetWindowWidth() * 0.20f);
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
             
             draw_list->AddRectFilled(canvas_p, ImVec2(canvas_p.x + canvas_size.x, canvas_p.y + canvas_size.y), IM_COL32(20, 20, 20, 255));
@@ -457,12 +457,12 @@ void TunerUI_Render() {
             ImGui::Text("%s", qam_title);
             ImVec2 canvas_p = ImGui::GetCursorScreenPos();
             float avail = ImGui::GetContentRegionAvail().x;
-            float canvas_w = ImGui::GetWindowWidth() * 0.25f;
+            float canvas_w = ImGui::GetWindowWidth() * 0.20f;
             if (avail > canvas_w) {
                 canvas_p.x += (avail - canvas_w) * 0.5f;
                 ImGui::SetCursorScreenPos(canvas_p);
             }
-            ImVec2 canvas_size = ImVec2(ImGui::GetWindowWidth() * 0.25f, ImGui::GetWindowWidth() * 0.25f);
+            ImVec2 canvas_size = ImVec2(ImGui::GetWindowWidth() * 0.20f, ImGui::GetWindowWidth() * 0.20f);
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
             
             draw_list->AddRectFilled(canvas_p, ImVec2(canvas_p.x + canvas_size.x, canvas_p.y + canvas_size.y), IM_COL32(20, 20, 20, 255));
@@ -555,12 +555,12 @@ void TunerUI_Render() {
             ImGui::Text("%s", qam_title);
             ImVec2 canvas_p = ImGui::GetCursorScreenPos();
             float avail = ImGui::GetContentRegionAvail().x;
-            float canvas_w = ImGui::GetWindowWidth() * 0.25f;
+            float canvas_w = ImGui::GetWindowWidth() * 0.20f;
             if (avail > canvas_w) {
                 canvas_p.x += (avail - canvas_w) * 0.5f;
                 ImGui::SetCursorScreenPos(canvas_p);
             }
-            ImVec2 canvas_size = ImVec2(ImGui::GetWindowWidth() * 0.25f, ImGui::GetWindowWidth() * 0.25f);
+            ImVec2 canvas_size = ImVec2(ImGui::GetWindowWidth() * 0.20f, ImGui::GetWindowWidth() * 0.20f);
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
             
             draw_list->AddRectFilled(canvas_p, ImVec2(canvas_p.x + canvas_size.x, canvas_p.y + canvas_size.y), IM_COL32(20, 20, 20, 255));
