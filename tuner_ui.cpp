@@ -47,27 +47,29 @@ void TunerUI_Render() {
     ImGui::Separator();
     ImGui::Spacing();
     
+    // Spread widgets out globally
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10, 15));
+    
     if (ImGui::BeginTabBar("TunerTabs", ImGuiTabBarFlags_None)) {
         
         // ==========================================
         // TAB 1: HARDWARE CONFIGURATION
         // ==========================================
         if (ImGui::BeginTabItem("Hardware Setup")) {
-            ImGui::Spacing();
-            ImGui::Text("Configure Physical Tuner Interfaces:");
+            ImGui::Spacing(); ImGui::Spacing();
+            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Configure Physical Tuner Interfaces:");
             ImGui::Spacing();
             
             static int selected_tuner = 0;
-            ImGui::RadioButton("Tuner A", &selected_tuner, 0); ImGui::SameLine();
+            ImGui::RadioButton("Tuner A", &selected_tuner, 0); ImGui::SameLine(200);
             ImGui::RadioButton("Tuner B", &selected_tuner, 1);
             
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Spacing();
+            ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+            
+            ImGui::PushItemWidth(io.DisplaySize.x * 0.4f); // Prevent combo boxes from stretching infinitely
             
             static int tuner_mode = 0;
-            ImGui::Text("Configuration Mode:");
-            ImGui::Combo("##Mode", &tuner_mode, "Simple\0Advanced\0Equal to\0Loop through to\0Nothing connected\0");
+            ImGui::Combo("Configuration Mode", &tuner_mode, "Simple\0Advanced\0Equal to\0Loop through to\0Nothing connected\0");
             
             if (tuner_mode == 0) { // Simple
                 static int simple_mode = 0;
@@ -97,39 +99,40 @@ void TunerUI_Render() {
                     ImGui::Combo("Region", &cable_region, "Europe DVB-C\0");
                 }
             }
+            ImGui::PopItemWidth();
             
-            ImGui::Spacing();
-            if (ImGui::Button("Save Configuration", ImVec2(200, 40))) {
-                // IPC hook to NimManager goes here
-            }
+            ImGui::Spacing(); ImGui::Spacing();
+            if (ImGui::Button("Save Configuration", ImVec2(250, 50))) {}
             
             ImGui::EndTabItem();
         }
         
         // ==========================================
-        // TAB 2: TRANSPONDER MANAGEMENT & SCANNING
+        // TAB 2: TRANSPONDER MANAGEMENT
         // ==========================================
-        if (ImGui::BeginTabItem("TP & Scanning")) {
-            ImGui::Spacing();
-            ImGui::Columns(2, "ScanCols", false);
-            ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.6f);
+        if (ImGui::BeginTabItem("TP Management")) {
+            ImGui::Spacing(); ImGui::Spacing();
             
-            ImGui::Text("Transponder Management:");
+            ImGui::Columns(2, "TPCols", false);
+            ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.45f);
             
-            // Satellite Combo
+            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Satellite / Network Selection:");
+            ImGui::PushItemWidth(-1);
+            
             const char* preview_sat = g_satellites.empty() ? "None" : g_satellites[current_sat_idx].name.c_str();
-            if (ImGui::BeginCombo("Satellite", preview_sat)) {
+            if (ImGui::BeginCombo("##Satellite", preview_sat)) {
                 for (int i = 0; i < g_satellites.size(); ++i) {
                     bool is_selected = (current_sat_idx == i);
                     if (ImGui::Selectable(g_satellites[i].name.c_str(), is_selected)) {
                         current_sat_idx = i;
-                        current_ts_idx = 0; // reset transponder
+                        current_ts_idx = 0;
                     }
                 }
                 ImGui::EndCombo();
             }
             
-            // Transponder Combo
+            ImGui::Spacing(); ImGui::Spacing();
+            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Transponder Selection:");
             if (current_sat_idx >= 0 && current_sat_idx < g_satellites.size() && !g_satellites[current_sat_idx].transponders.empty()) {
                 const auto& sat = g_satellites[current_sat_idx];
                 const auto& curr_ts = sat.transponders[current_ts_idx];
@@ -137,60 +140,174 @@ void TunerUI_Render() {
                 char ts_preview[128];
                 snprintf(ts_preview, sizeof(ts_preview), "%d MHz / %d SR", curr_ts.frequency / 1000, curr_ts.symbol_rate / 1000);
                 
-                if (ImGui::BeginCombo("Transponder", ts_preview)) {
+                if (ImGui::BeginCombo("##Transponder", ts_preview)) {
                     for (int i = 0; i < sat.transponders.size(); ++i) {
                         const auto& ts = sat.transponders[i];
                         char label[128];
                         snprintf(label, sizeof(label), "%d MHz / %d SR / Pol: %d", ts.frequency / 1000, ts.symbol_rate / 1000, ts.polarization);
-                        
                         bool is_selected = (current_ts_idx == i);
                         if (ImGui::Selectable(label, is_selected)) current_ts_idx = i;
                     }
                     ImGui::EndCombo();
                 }
                 
-                ImGui::Spacing();
-                if (ImGui::Button("Add TP")) {} ImGui::SameLine();
-                if (ImGui::Button("Edit TP")) {} ImGui::SameLine();
-                if (ImGui::Button("Remove TP")) {}
+                ImGui::PopItemWidth();
+                ImGui::NextColumn();
+                
+                // TP Details / Edit form
+                ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Transponder Parameters:");
+                ImGui::Separator(); ImGui::Spacing();
+                
+                ImGui::PushItemWidth(io.DisplaySize.x * 0.2f);
+                int mod_freq = curr_ts.frequency / 1000;
+                ImGui::InputInt("Frequency (MHz)", &mod_freq);
+                
+                int mod_sr = curr_ts.symbol_rate / 1000;
+                ImGui::InputInt("Symbol Rate (KS/s)", &mod_sr);
+                
+                static int mod_pol = curr_ts.polarization;
+                ImGui::Combo("Polarization", &mod_pol, "Horizontal\0Vertical\0Circular Left\0Circular Right\0");
+                
+                static int mod_fec = curr_ts.fec_inner;
+                ImGui::Combo("FEC Inner", &mod_fec, "Auto\0 1/2\0 2/3\0 3/4\0 5/6\0 7/8\0 8/9\0 3/5\0 4/5\0 9/10\0 None\0");
+                
+                static int mod_sys = curr_ts.system;
+                ImGui::Combo("System (DVB Type)", &mod_sys, "DVB-S\0DVB-S2\0");
+                
+                static int mod_mod = curr_ts.modulation;
+                ImGui::Combo("Modulation", &mod_mod, "Auto\0QPSK\08PSK\016APSK\032APSK\0");
+                
+                ImGui::PopItemWidth();
+                
+                ImGui::Spacing(); ImGui::Spacing();
+                if (ImGui::Button("Add New TP", ImVec2(150, 40))) {} ImGui::SameLine();
+                if (ImGui::Button("Save Changes", ImVec2(150, 40))) {} ImGui::SameLine();
+                if (ImGui::Button("Delete TP", ImVec2(150, 40))) {}
+            } else {
+                ImGui::PopItemWidth();
+                ImGui::NextColumn();
+                ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "No transponders found.");
             }
-            
-            ImGui::NextColumn();
-            ImGui::Text("Scan Operations:");
-            ImGui::Spacing();
-            if (ImGui::Button("Automatic Scan (Full)", ImVec2(-1, 50))) {}
-            if (ImGui::Button("Manual Scan (Current TP)", ImVec2(-1, 50))) {}
-            if (ImGui::Button("Hardware Blindscan", ImVec2(-1, 50))) {}
             
             ImGui::Columns(1);
             ImGui::EndTabItem();
         }
         
         // ==========================================
-        // TAB 3: SATELLITE SIGNAL FINDER
+        // TAB 3: RECEPTION & SCANNING
+        // ==========================================
+        if (ImGui::BeginTabItem("Reception / Scan")) {
+            ImGui::Spacing(); ImGui::Spacing();
+            
+            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Select Scan Operation:");
+            static int scan_type = 0;
+            ImGui::RadioButton("Automatic Scan (Full)", &scan_type, 0); ImGui::SameLine(300);
+            ImGui::RadioButton("Manual Scan", &scan_type, 1); ImGui::SameLine(600);
+            ImGui::RadioButton("Blindscan", &scan_type, 2);
+            
+            ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+            
+            ImGui::PushItemWidth(io.DisplaySize.x * 0.3f);
+            if (scan_type == 0) {
+                static int auto_tuner = 0;
+                ImGui::Combo("Tuner", &auto_tuner, "All Tuners\0Tuner A (DVB-S2)\0Tuner B (DVB-T2)\0");
+                static bool clear_before = true;
+                ImGui::Checkbox("Clear before scan", &clear_before);
+            } else if (scan_type == 1) {
+                static int manual_tuner = 0;
+                ImGui::Combo("Tuner", &manual_tuner, "Tuner A (DVB-S2)\0Tuner B (DVB-T2)\0");
+                static int manual_type = 0;
+                ImGui::Combo("Type of Scan", &manual_type, "Single Transponder\0Single Satellite\0Multisat\0");
+                
+                if (manual_type == 0) { // Single TP
+                    ImGui::TextDisabled("Select Satellite and Transponder below:");
+                    // Re-use preview logic
+                    const char* preview_sat = g_satellites.empty() ? "None" : g_satellites[current_sat_idx].name.c_str();
+                    if (ImGui::BeginCombo("Satellite", preview_sat)) {
+                        for (int i = 0; i < g_satellites.size(); ++i) {
+                            if (ImGui::Selectable(g_satellites[i].name.c_str(), current_sat_idx == i)) current_sat_idx = i;
+                        }
+                        ImGui::EndCombo();
+                    }
+                }
+            } else if (scan_type == 2) {
+                static int blind_tuner = 0;
+                ImGui::Combo("Tuner", &blind_tuner, "Tuner A (DVB-S2)\0Tuner B (DVB-T2)\0");
+            }
+            ImGui::PopItemWidth();
+            
+            ImGui::Spacing(); ImGui::Spacing();
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
+            if (ImGui::Button("START SCAN", ImVec2(300, 60))) {}
+            ImGui::PopStyleColor();
+            
+            ImGui::EndTabItem();
+        }
+        
+        // ==========================================
+        // TAB 4: SATELLITE SIGNAL FINDER
         // ==========================================
         if (ImGui::BeginTabItem("Satellite Finder")) {
-            ImGui::Spacing();
+            ImGui::Spacing(); ImGui::Spacing();
+            
+            ImGui::Columns(2, "SatFinderCols", false);
+            ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.55f);
+            
+            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Tune to Satellite & Transponder:");
+            ImGui::PushItemWidth(io.DisplaySize.x * 0.4f);
+            
+            const char* preview_sat = g_satellites.empty() ? "None" : g_satellites[current_sat_idx].name.c_str();
+            if (ImGui::BeginCombo("Satellite##Find", preview_sat)) {
+                for (int i = 0; i < g_satellites.size(); ++i) {
+                    if (ImGui::Selectable(g_satellites[i].name.c_str(), current_sat_idx == i)) {
+                        current_sat_idx = i; current_ts_idx = 0;
+                    }
+                }
+                ImGui::EndCombo();
+            }
+            
+            if (current_sat_idx >= 0 && current_sat_idx < g_satellites.size() && !g_satellites[current_sat_idx].transponders.empty()) {
+                const auto& sat = g_satellites[current_sat_idx];
+                const auto& curr_ts = sat.transponders[current_ts_idx];
+                char ts_preview[128]; snprintf(ts_preview, sizeof(ts_preview), "%d MHz / %d SR", curr_ts.frequency / 1000, curr_ts.symbol_rate / 1000);
+                
+                if (ImGui::BeginCombo("Transponder##Find", ts_preview)) {
+                    for (int i = 0; i < sat.transponders.size(); ++i) {
+                        const auto& ts = sat.transponders[i];
+                        char label[128]; snprintf(label, sizeof(label), "%d MHz / %d SR / Pol: %d", ts.frequency / 1000, ts.symbol_rate / 1000, ts.polarization);
+                        if (ImGui::Selectable(label, current_ts_idx == i)) current_ts_idx = i;
+                    }
+                    ImGui::EndCombo();
+                }
+                
+                ImGui::Spacing();
+                // Allow direct editing for signal hunting
+                static int hunt_freq = curr_ts.frequency / 1000;
+                static int hunt_sr = curr_ts.symbol_rate / 1000;
+                ImGui::InputInt("Freq (MHz)", &hunt_freq, 1, 100);
+                ImGui::InputInt("Sym (KS/s)", &hunt_sr, 1, 1000);
+                
+                if (ImGui::Button("Lock Tuner", ImVec2(200, 40))) {}
+            }
+            ImGui::PopItemWidth();
+            
+            ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
             
             extern int g_snr, g_agc, g_ber;
-            ImGui::Columns(2, "SatFinderCols", false);
-            ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.45f);
-            
-            ImGui::Text("Tuner Lock Metrics");
-            ImGui::Separator();
+            ImGui::Text("Live Lock Metrics");
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
             char buf[32]; sprintf(buf, "SNR %d%%", g_snr);
-            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 0.0f), buf);
+            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 30.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.8f, 0.2f, 1.0f));
             sprintf(buf, "AGC %d%%", g_agc);
-            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 0.0f), buf);
+            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 30.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
             sprintf(buf, "BER %d", g_ber);
-            ImGui::ProgressBar(g_ber > 100 ? 1.0f : g_ber / 100.0f, ImVec2(-1.0f, 0.0f), buf);
+            ImGui::ProgressBar(g_ber > 100 ? 1.0f : g_ber / 100.0f, ImVec2(-1.0f, 30.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::NextColumn();
@@ -222,7 +339,6 @@ void TunerUI_Render() {
                 float angle = (c * (360.0f / num_clusters) + 45.0f) * 3.14159f / 180.0f;
                 float cx = center_x + cosf(angle) * cluster_radius;
                 float cy = center_y + sinf(angle) * cluster_radius;
-                
                 for (int p = 0; p < 50; p++) {
                     float rx = ((float)rand() / RAND_MAX - 0.5f) * noise_radius;
                     float ry = ((float)rand() / RAND_MAX - 0.5f) * noise_radius;
@@ -236,25 +352,39 @@ void TunerUI_Render() {
         }
         
         // ==========================================
-        // TAB 4: TERRESTRIAL FINDER
+        // TAB 5: TERRESTRIAL FINDER
         // ==========================================
         if (ImGui::BeginTabItem("Terrestrial Finder")) {
-            ImGui::Spacing();
+            ImGui::Spacing(); ImGui::Spacing();
             ImGui::Text("DVB-T / DVB-T2 Alignment");
-            ImGui::Separator();
-            ImGui::Spacing();
+            ImGui::Separator(); ImGui::Spacing();
             
-            static int terr_freq = 610000;
-            static int terr_bw = 8; // MHz
+            ImGui::PushItemWidth(io.DisplaySize.x * 0.3f);
             
-            ImGui::InputInt("Frequency (kHz)", &terr_freq, 1000, 10000);
+            static int terr_channel = 21;
+            ImGui::InputInt("Channel (VHF/UHF)", &terr_channel, 1, 5);
+            
+            static int terr_freq = 474000;
+            ImGui::InputInt("Frequency (kHz)", &terr_freq, 1000, 8000);
+            
+            static int terr_bw = 8;
             ImGui::SliderInt("Bandwidth (MHz)", &terr_bw, 6, 8);
             
-            ImGui::Spacing();
-            if (ImGui::Button("Lock Tuner to Frequency", ImVec2(300, 40))) {}
+            static int terr_fec = 0;
+            ImGui::Combo("FEC High", &terr_fec, "Auto\0 1/2\0 2/3\0 3/4\0 5/6\0 7/8\0");
+            
+            static int terr_gi = 0;
+            ImGui::Combo("Guard Interval", &terr_gi, "Auto\0 1/4\0 1/8\0 1/16\0 1/32\0 1/128\0 19/128\0 19/256\0");
+            
+            static int terr_mod = 0;
+            ImGui::Combo("Modulation", &terr_mod, "Auto\0 QPSK\0 QAM16\0 QAM64\0 QAM256\0");
+            
+            ImGui::PopItemWidth();
             
             ImGui::Spacing();
-            ImGui::Spacing();
+            if (ImGui::Button("Lock Tuner to Terrestrial", ImVec2(300, 40))) {}
+            
+            ImGui::Spacing(); ImGui::Spacing();
             
             extern int g_snr, g_agc;
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.6f, 0.9f, 1.0f));
@@ -262,7 +392,6 @@ void TunerUI_Render() {
             ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 40.0f), buf);
             ImGui::PopStyleColor();
             
-            ImGui::Spacing();
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.8f, 0.2f, 1.0f));
             sprintf(buf, "AGC %d%%", g_agc);
             ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 40.0f), buf);
@@ -272,13 +401,14 @@ void TunerUI_Render() {
         }
         
         // ==========================================
-        // TAB 5: CABLE FINDER
+        // TAB 6: CABLE FINDER
         // ==========================================
         if (ImGui::BeginTabItem("Cable Finder")) {
-            ImGui::Spacing();
+            ImGui::Spacing(); ImGui::Spacing();
             ImGui::Text("DVB-C Diagnostics");
-            ImGui::Separator();
-            ImGui::Spacing();
+            ImGui::Separator(); ImGui::Spacing();
+            
+            ImGui::PushItemWidth(io.DisplaySize.x * 0.3f);
             
             static int cab_freq = 410000;
             static int cab_sr = 6900;
@@ -288,10 +418,12 @@ void TunerUI_Render() {
             ImGui::InputInt("Symbol Rate (KS/s)", &cab_sr, 100, 1000);
             ImGui::Combo("Modulation", &cab_qam, "QAM16\0QAM32\0QAM64\0QAM128\0QAM256\0");
             
-            ImGui::Spacing();
-            if (ImGui::Button("Lock Tuner to Frequency", ImVec2(300, 40))) {}
+            ImGui::PopItemWidth();
             
             ImGui::Spacing();
+            if (ImGui::Button("Lock Tuner to Cable", ImVec2(300, 40))) {}
+            
+            ImGui::Spacing(); ImGui::Spacing();
             
             extern int g_snr, g_agc;
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.9f, 0.4f, 0.2f, 1.0f));
@@ -299,7 +431,6 @@ void TunerUI_Render() {
             ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 40.0f), buf);
             ImGui::PopStyleColor();
             
-            ImGui::Spacing();
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.8f, 0.2f, 1.0f));
             sprintf(buf, "AGC %d%%", g_agc);
             ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 40.0f), buf);
@@ -310,4 +441,5 @@ void TunerUI_Render() {
         
         ImGui::EndTabBar();
     }
+    ImGui::PopStyleVar();
 }
