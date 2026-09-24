@@ -318,7 +318,7 @@ void TunerUI_Render() {
             extern int g_snr, g_agc, g_ber;
             
             // CONSTELLATION DIAGRAM
-            ImGui::Spacing(); ImGui::Spacing();
+            ImGui::Spacing();
             const char* iq_title = "Constellation Diagram\n(IQ Plot)";
             ImVec2 txt_size = ImGui::CalcTextSize(iq_title);
             float avail_txt = ImGui::GetContentRegionAvail().x;
@@ -374,21 +374,21 @@ void TunerUI_Render() {
             ImGui::Text("SNR: "); ImGui::SameLine(100);
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
             sprintf(buf, "%d%%", g_snr);
-            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 30.0f), buf);
+            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 25.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::Spacing();
             ImGui::Text("AGC: "); ImGui::SameLine(100);
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.8f, 0.2f, 1.0f));
             sprintf(buf, "%d%%", g_agc);
-            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 30.0f), buf);
+            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 25.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::Spacing();
             ImGui::Text("BER: "); ImGui::SameLine(100);
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
             sprintf(buf, "%d", g_ber);
-            ImGui::ProgressBar(g_ber > 100 ? 1.0f : g_ber / 100.0f, ImVec2(-1.0f, 30.0f), buf);
+            ImGui::ProgressBar(g_ber > 100 ? 1.0f : g_ber / 100.0f, ImVec2(-1.0f, 25.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::EndTabItem();
@@ -449,7 +449,7 @@ void TunerUI_Render() {
             extern int g_snr, g_agc;
             
             // CONSTELLATION DIAGRAM
-            ImGui::Spacing(); ImGui::Spacing();
+            ImGui::Spacing();
             const char* qam_title = "Constellation Diagram\n(QAM64 Plot)";
             ImVec2 txt_size2 = ImGui::CalcTextSize(qam_title);
             float avail_txt2 = ImGui::GetContentRegionAvail().x;
@@ -496,21 +496,21 @@ void TunerUI_Render() {
             ImGui::Dummy(canvas_size);
             
             ImGui::Columns(1);
-            ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+            ImGui::Separator();
             ImGui::Text("Live Lock Metrics");
             char buf[32];
             
             ImGui::Text("SNR: "); ImGui::SameLine(100);
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.6f, 0.9f, 1.0f));
             sprintf(buf, "%d%%", g_snr);
-            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 30.0f), buf);
+            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 25.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::Spacing();
             ImGui::Text("AGC: "); ImGui::SameLine(100);
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.8f, 0.2f, 1.0f));
             sprintf(buf, "%d%%", g_agc);
-            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 30.0f), buf);
+            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 25.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::EndTabItem();
@@ -547,7 +547,7 @@ void TunerUI_Render() {
             extern int g_snr, g_agc;
             
             // CONSTELLATION DIAGRAM
-            ImGui::Spacing(); ImGui::Spacing();
+            ImGui::Spacing();
             const char* qam_title = "Constellation Diagram\n(QAM64 Plot)";
             ImVec2 txt_size2 = ImGui::CalcTextSize(qam_title);
             float avail_txt2 = ImGui::GetContentRegionAvail().x;
@@ -594,21 +594,21 @@ void TunerUI_Render() {
             ImGui::Dummy(canvas_size);
             
             ImGui::Columns(1);
-            ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+            ImGui::Separator();
             ImGui::Text("Live Lock Metrics");
             char buf[32];
             
             ImGui::Text("SNR: "); ImGui::SameLine(100);
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.9f, 0.4f, 0.2f, 1.0f));
             sprintf(buf, "%d%%", g_snr);
-            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 30.0f), buf);
+            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 25.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::Spacing();
             ImGui::Text("AGC: "); ImGui::SameLine(100);
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.8f, 0.2f, 1.0f));
             sprintf(buf, "%d%%", g_agc);
-            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 30.0f), buf);
+            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 25.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::EndTabItem();
