@@ -369,21 +369,26 @@ void TunerUI_Render() {
             
             ImGui::Spacing(); ImGui::Spacing();
             ImGui::Text("Live Lock Metrics (Tuned TP)");
+            char buf[32];
+            
+            ImGui::Text("SNR: "); ImGui::SameLine(100);
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
-            char buf[32]; sprintf(buf, "SNR %d%%", g_snr);
-            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 40.0f), buf);
+            sprintf(buf, "%d%%", g_snr);
+            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 30.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::Spacing();
+            ImGui::Text("AGC: "); ImGui::SameLine(100);
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.8f, 0.2f, 1.0f));
-            sprintf(buf, "AGC %d%%", g_agc);
-            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 40.0f), buf);
+            sprintf(buf, "%d%%", g_agc);
+            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 30.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::Spacing();
+            ImGui::Text("BER: "); ImGui::SameLine(100);
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
-            sprintf(buf, "BER %d", g_ber);
-            ImGui::ProgressBar(g_ber > 100 ? 1.0f : g_ber / 100.0f, ImVec2(-1.0f, 40.0f), buf);
+            sprintf(buf, "%d", g_ber);
+            ImGui::ProgressBar(g_ber > 100 ? 1.0f : g_ber / 100.0f, ImVec2(-1.0f, 30.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::EndTabItem();
@@ -493,15 +498,19 @@ void TunerUI_Render() {
             ImGui::Columns(1);
             ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
             ImGui::Text("Live Lock Metrics");
+            char buf[32];
+            
+            ImGui::Text("SNR: "); ImGui::SameLine(100);
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.6f, 0.9f, 1.0f));
-            char buf[32]; sprintf(buf, "SNR %d%%", g_snr);
-            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 40.0f), buf);
+            sprintf(buf, "%d%%", g_snr);
+            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 30.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::Spacing();
+            ImGui::Text("AGC: "); ImGui::SameLine(100);
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.8f, 0.2f, 1.0f));
-            sprintf(buf, "AGC %d%%", g_agc);
-            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 40.0f), buf);
+            sprintf(buf, "%d%%", g_agc);
+            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 30.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::EndTabItem();
@@ -587,15 +596,19 @@ void TunerUI_Render() {
             ImGui::Columns(1);
             ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
             ImGui::Text("Live Lock Metrics");
+            char buf[32];
+            
+            ImGui::Text("SNR: "); ImGui::SameLine(100);
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.9f, 0.4f, 0.2f, 1.0f));
-            char buf[32]; sprintf(buf, "SNR %d%%", g_snr);
-            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 40.0f), buf);
+            sprintf(buf, "%d%%", g_snr);
+            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 30.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::Spacing();
+            ImGui::Text("AGC: "); ImGui::SameLine(100);
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.8f, 0.2f, 1.0f));
-            sprintf(buf, "AGC %d%%", g_agc);
-            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 40.0f), buf);
+            sprintf(buf, "%d%%", g_agc);
+            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 30.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::EndTabItem();
