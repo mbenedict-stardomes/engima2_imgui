@@ -78,6 +78,8 @@ void RenderHome() {
     }
     
     ImGui::EndChild();
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(2);
 }
 
 bool MainMenu_Render() {
@@ -162,9 +164,19 @@ bool MainMenu_Render() {
         // Embed the Tuner UI exactly in the center
         ImVec2 tunerSize(io.DisplaySize.x * 0.8f, io.DisplaySize.y * 0.8f);
         ImGui::SetCursorPos(ImVec2((io.DisplaySize.x - tunerSize.x) * 0.5f, (io.DisplaySize.y - tunerSize.y) * 0.5f));
+        
+        // Emulate native Enigma2 floating modal with reverse video (opaque black) and 3D raised borders
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 2.0f);
+        
         ImGui::BeginChild("TunerChild", tunerSize, true, ImGuiWindowFlags_NoScrollbar);
         TunerUI_Render();
         ImGui::EndChild();
+        
+        ImGui::PopStyleVar(2);
+        ImGui::PopStyleColor(2);
     }
     else if (g_currentState == MENU_CHANNELS) {
         ImVec2 listSize(io.DisplaySize.x * 0.8f, io.DisplaySize.y * 0.8f);
