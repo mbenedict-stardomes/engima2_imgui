@@ -180,9 +180,9 @@ void TunerUI_Render() {
                 ImGui::PopItemWidth();
                 
                 ImGui::Spacing(); ImGui::Spacing();
-                if (ImGui::Button("Add New TP", ImVec2(150, 40))) {} ImGui::SameLine();
-                if (ImGui::Button("Save Changes", ImVec2(150, 40))) {} ImGui::SameLine();
-                if (ImGui::Button("Delete TP", ImVec2(150, 40))) {}
+                if (ImGui::Button("Add New TP", ImVec2(io.DisplaySize.x * 0.15f, 60))) {} ImGui::SameLine();
+                if (ImGui::Button("Save Changes", ImVec2(io.DisplaySize.x * 0.15f, 60))) {} ImGui::SameLine();
+                if (ImGui::Button("Delete TP", ImVec2(io.DisplaySize.x * 0.15f, 60))) {}
             } else {
                 ImGui::PopItemWidth();
                 ImGui::NextColumn();
@@ -201,8 +201,8 @@ void TunerUI_Render() {
             
             ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Select Scan Operation:");
             static int scan_type = 0;
-            ImGui::RadioButton("Automatic Scan (Full)", &scan_type, 0); ImGui::SameLine(300);
-            ImGui::RadioButton("Manual Scan", &scan_type, 1); ImGui::SameLine(600);
+            ImGui::RadioButton("Automatic Scan (Full)", &scan_type, 0); ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
+            ImGui::RadioButton("Manual Scan", &scan_type, 1); ImGui::SameLine(ImGui::GetWindowWidth() * 0.65f);
             ImGui::RadioButton("Blindscan", &scan_type, 2);
             
             ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
@@ -221,14 +221,35 @@ void TunerUI_Render() {
                 
                 if (manual_type == 0) { // Single TP
                     ImGui::TextDisabled("Select Satellite and Transponder below:");
-                    // Re-use preview logic
+                    
                     const char* preview_sat = g_satellites.empty() ? "None" : g_satellites[current_sat_idx].name.c_str();
                     if (ImGui::BeginCombo("Satellite", preview_sat)) {
                         for (int i = 0; i < g_satellites.size(); ++i) {
-                            if (ImGui::Selectable(g_satellites[i].name.c_str(), current_sat_idx == i)) current_sat_idx = i;
+                            if (ImGui::Selectable(g_satellites[i].name.c_str(), current_sat_idx == i)) {
+                                current_sat_idx = i;
+                                current_ts_idx = 0;
+                            }
                         }
                         ImGui::EndCombo();
                     }
+                    
+                    if (current_sat_idx >= 0 && current_sat_idx < g_satellites.size() && !g_satellites[current_sat_idx].transponders.empty()) {
+                        const auto& sat = g_satellites[current_sat_idx];
+                        const auto& curr_ts = sat.transponders[current_ts_idx];
+                        char ts_preview[128]; snprintf(ts_preview, sizeof(ts_preview), "%d MHz / %d SR", curr_ts.frequency / 1000, curr_ts.symbol_rate / 1000);
+                        if (ImGui::BeginCombo("Transponder", ts_preview)) {
+                            for (int i = 0; i < sat.transponders.size(); ++i) {
+                                const auto& ts = sat.transponders[i];
+                                char label[128]; snprintf(label, sizeof(label), "%d MHz / %d SR / Pol: %d", ts.frequency / 1000, ts.symbol_rate / 1000, ts.polarization);
+                                if (ImGui::Selectable(label, current_ts_idx == i)) current_ts_idx = i;
+                            }
+                            ImGui::EndCombo();
+                        }
+                    }
+                } else {
+                    ImGui::BeginDisabled();
+                    ImGui::Combo("Transponder", &current_ts_idx, "All Transponders\0");
+                    ImGui::EndDisabled();
                 }
             } else if (scan_type == 2) {
                 static int blind_tuner = 0;
@@ -294,23 +315,6 @@ void TunerUI_Render() {
             ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
             
             extern int g_snr, g_agc, g_ber;
-            ImGui::Text("Live Lock Metrics");
-            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
-            char buf[32]; sprintf(buf, "SNR %d%%", g_snr);
-            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 30.0f), buf);
-            ImGui::PopStyleColor();
-            
-            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.8f, 0.2f, 1.0f));
-            sprintf(buf, "AGC %d%%", g_agc);
-            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 30.0f), buf);
-            ImGui::PopStyleColor();
-            
-            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
-            sprintf(buf, "BER %d", g_ber);
-            ImGui::ProgressBar(g_ber > 100 ? 1.0f : g_ber / 100.0f, ImVec2(-1.0f, 30.0f), buf);
-            ImGui::PopStyleColor();
-            
-            ImGui::NextColumn();
             
             // CONSTELLATION DIAGRAM
             ImGui::Text("Constellation Diagram (IQ Plot)");
@@ -346,6 +350,26 @@ void TunerUI_Render() {
                 }
             }
             ImGui::Dummy(canvas_size);
+            
+            ImGui::NextColumn();
+            ImGui::Text("Live Lock Metrics (Tuned TP)");
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
+            char buf[32]; sprintf(buf, "SNR %d%%", g_snr);
+            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 60.0f), buf);
+            ImGui::PopStyleColor();
+            
+            ImGui::Spacing();
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.8f, 0.2f, 1.0f));
+            sprintf(buf, "AGC %d%%", g_agc);
+            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 60.0f), buf);
+            ImGui::PopStyleColor();
+            
+            ImGui::Spacing();
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
+            sprintf(buf, "BER %d", g_ber);
+            ImGui::ProgressBar(g_ber > 100 ? 1.0f : g_ber / 100.0f, ImVec2(-1.0f, 60.0f), buf);
+            ImGui::PopStyleColor();
+            
             ImGui::Columns(1);
             
             ImGui::EndTabItem();
