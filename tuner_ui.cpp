@@ -8,6 +8,7 @@ struct HardwareTuner {
     std::string type_flags;
 };
 extern std::vector<HardwareTuner> g_hardware_tuners;
+extern "C" void TriggerPlayback(const char* ref_str);
 
 #include "imgui/imgui.h"
 #include "pugixml.hpp"
@@ -278,7 +279,7 @@ void TunerUI_Render() {
             
             ImGui::Spacing(); ImGui::Spacing();
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
-            extern "C" void TriggerPlayback(const char* ref_str);
+            
             if (ImGui::Button("START SCAN", ImVec2(300, 60))) {
                 char scan_action[128];
                 snprintf(scan_action, sizeof(scan_action), "start_scan|%d", scan_type);
