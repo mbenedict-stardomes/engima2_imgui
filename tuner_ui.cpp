@@ -1,4 +1,14 @@
 #include "tuner_ui.h"
+#include <vector>
+#include <string>
+
+struct HardwareTuner {
+    int slot_id;
+    std::string name;
+    std::string type_flags;
+};
+extern std::vector<HardwareTuner> g_hardware_tuners;
+
 #include "imgui/imgui.h"
 #include "pugixml.hpp"
 #include <iostream>
