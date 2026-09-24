@@ -248,7 +248,8 @@ void TunerUI_Render() {
                     }
                 } else {
                     ImGui::BeginDisabled();
-                    ImGui::Combo("Transponder", &current_ts_idx, "All Transponders\0");
+                    static int dummy_ts = 0;
+                    ImGui::Combo("Transponder", &dummy_ts, "All Transponders\0");
                     ImGui::EndDisabled();
                 }
             } else if (scan_type == 2) {
@@ -272,10 +273,10 @@ void TunerUI_Render() {
             ImGui::Spacing(); ImGui::Spacing();
             
             ImGui::Columns(2, "SatFinderCols", false);
-            ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.55f);
+            ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.45f);
             
             ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Tune to Satellite & Transponder:");
-            ImGui::PushItemWidth(io.DisplaySize.x * 0.4f);
+            ImGui::PushItemWidth(io.DisplaySize.x * 0.35f);
             
             const char* preview_sat = g_satellites.empty() ? "None" : g_satellites[current_sat_idx].name.c_str();
             if (ImGui::BeginCombo("Satellite##Find", preview_sat)) {
@@ -312,14 +313,15 @@ void TunerUI_Render() {
             }
             ImGui::PopItemWidth();
             
-            ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+            ImGui::NextColumn();
             
             extern int g_snr, g_agc, g_ber;
             
             // CONSTELLATION DIAGRAM
             ImGui::Text("Constellation Diagram (IQ Plot)");
             ImVec2 canvas_p = ImGui::GetCursorScreenPos();
-            ImVec2 canvas_size = ImVec2(ImGui::GetWindowWidth() * 0.35f, ImGui::GetWindowWidth() * 0.35f);
+            // Reduce size from 0.35f to 0.25f to fit screen
+            ImVec2 canvas_size = ImVec2(ImGui::GetWindowWidth() * 0.25f, ImGui::GetWindowWidth() * 0.25f);
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
             
             draw_list->AddRectFilled(canvas_p, ImVec2(canvas_p.x + canvas_size.x, canvas_p.y + canvas_size.y), IM_COL32(20, 20, 20, 255));
@@ -327,7 +329,7 @@ void TunerUI_Render() {
             draw_list->AddLine(ImVec2(canvas_p.x + canvas_size.x/2, canvas_p.y), ImVec2(canvas_p.x + canvas_size.x/2, canvas_p.y + canvas_size.y), IM_COL32(255, 255, 255, 100));
             draw_list->AddLine(ImVec2(canvas_p.x, canvas_p.y + canvas_size.y/2), ImVec2(canvas_p.x + canvas_size.x, canvas_p.y + canvas_size.y/2), IM_COL32(255, 255, 255, 100));
             
-            float noise_radius = (100.0f - g_snr) * 1.5f;
+            float noise_radius = (100.0f - g_snr) * (canvas_size.x / 100.0f); // Scale noise radius dynamically
             if (noise_radius < 5.0f) noise_radius = 5.0f;
             
             int num_clusters = 4; // Default QPSK
@@ -351,23 +353,23 @@ void TunerUI_Render() {
             }
             ImGui::Dummy(canvas_size);
             
-            ImGui::NextColumn();
+            ImGui::Spacing(); ImGui::Spacing();
             ImGui::Text("Live Lock Metrics (Tuned TP)");
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
             char buf[32]; sprintf(buf, "SNR %d%%", g_snr);
-            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 60.0f), buf);
+            ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 40.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::Spacing();
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.8f, 0.2f, 1.0f));
             sprintf(buf, "AGC %d%%", g_agc);
-            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 60.0f), buf);
+            ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 40.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::Spacing();
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
             sprintf(buf, "BER %d", g_ber);
-            ImGui::ProgressBar(g_ber > 100 ? 1.0f : g_ber / 100.0f, ImVec2(-1.0f, 60.0f), buf);
+            ImGui::ProgressBar(g_ber > 100 ? 1.0f : g_ber / 100.0f, ImVec2(-1.0f, 40.0f), buf);
             ImGui::PopStyleColor();
             
             ImGui::Columns(1);
@@ -383,13 +385,30 @@ void TunerUI_Render() {
             ImGui::Text("DVB-T / DVB-T2 Alignment");
             ImGui::Separator(); ImGui::Spacing();
             
+            ImGui::Columns(2, "TerrFinderCols", false);
+            ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.45f);
+            
             ImGui::PushItemWidth(io.DisplaySize.x * 0.3f);
             
             static int terr_channel = 21;
-            ImGui::InputInt("Channel (VHF/UHF)", &terr_channel, 1, 5);
+            if (ImGui::InputInt("Channel (VHF/UHF)", &terr_channel, 1, 5)) {
+                // Auto update frequency based on EU DVB-T standard (Ch21 = 474MHz, 8MHz bandwidth)
+                if (terr_channel >= 21 && terr_channel <= 69) {
+                    // Update external static freq variable! Wait, we use a static variable inside the function.
+                    // To update it from here, we have it declared below.
+                }
+            }
             
             static int terr_freq = 474000;
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                terr_freq = 474000 + (terr_channel - 21) * 8000;
+            }
             ImGui::InputInt("Frequency (kHz)", &terr_freq, 1000, 8000);
+            
+            // Cross sync channel from freq
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                terr_channel = 21 + ((terr_freq - 474000) / 8000);
+            }
             
             static int terr_bw = 8;
             ImGui::SliderInt("Bandwidth (MHz)", &terr_bw, 6, 8);
@@ -408,18 +427,59 @@ void TunerUI_Render() {
             ImGui::Spacing();
             if (ImGui::Button("Lock Tuner to Terrestrial", ImVec2(300, 40))) {}
             
-            ImGui::Spacing(); ImGui::Spacing();
+            ImGui::NextColumn();
             
             extern int g_snr, g_agc;
+            
+            // CONSTELLATION DIAGRAM
+            ImGui::Text("Constellation Diagram (QAM64 Plot)");
+            ImVec2 canvas_p = ImGui::GetCursorScreenPos();
+            ImVec2 canvas_size = ImVec2(ImGui::GetWindowWidth() * 0.25f, ImGui::GetWindowWidth() * 0.25f);
+            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            
+            draw_list->AddRectFilled(canvas_p, ImVec2(canvas_p.x + canvas_size.x, canvas_p.y + canvas_size.y), IM_COL32(20, 20, 20, 255));
+            draw_list->AddRect(canvas_p, ImVec2(canvas_p.x + canvas_size.x, canvas_p.y + canvas_size.y), IM_COL32(255, 255, 255, 100));
+            draw_list->AddLine(ImVec2(canvas_p.x + canvas_size.x/2, canvas_p.y), ImVec2(canvas_p.x + canvas_size.x/2, canvas_p.y + canvas_size.y), IM_COL32(255, 255, 255, 100));
+            draw_list->AddLine(ImVec2(canvas_p.x, canvas_p.y + canvas_size.y/2), ImVec2(canvas_p.x + canvas_size.x, canvas_p.y + canvas_size.y/2), IM_COL32(255, 255, 255, 100));
+            
+            float noise_radius = (100.0f - g_snr) * (canvas_size.x / 100.0f);
+            if (noise_radius < 5.0f) noise_radius = 5.0f;
+            
+            ImU32 point_col = IM_COL32(50, 150, 255, 255);
+            if (g_snr < 50) point_col = IM_COL32(255, 255, 50, 255);
+            if (g_snr < 30) point_col = IM_COL32(255, 50, 50, 255);
+            
+            float center_x = canvas_p.x + canvas_size.x / 2.0f;
+            float center_y = canvas_p.y + canvas_size.y / 2.0f;
+            float step = canvas_size.x / 10.0f;
+            
+            for (int ix = -4; ix < 4; ix++) {
+                for (int iy = -4; iy < 4; iy++) {
+                    float cx = center_x + (ix + 0.5f) * step;
+                    float cy = center_y + (iy + 0.5f) * step;
+                    for (int p = 0; p < 5; p++) {
+                        float rx = ((float)rand() / RAND_MAX - 0.5f) * noise_radius;
+                        float ry = ((float)rand() / RAND_MAX - 0.5f) * noise_radius;
+                        draw_list->AddCircleFilled(ImVec2(cx + rx, cy + ry), 1.5f, point_col);
+                    }
+                }
+            }
+            ImGui::Dummy(canvas_size);
+            
+            ImGui::Spacing(); ImGui::Spacing();
+            ImGui::Text("Live Lock Metrics");
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.6f, 0.9f, 1.0f));
             char buf[32]; sprintf(buf, "SNR %d%%", g_snr);
             ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 40.0f), buf);
             ImGui::PopStyleColor();
             
+            ImGui::Spacing();
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.8f, 0.2f, 1.0f));
             sprintf(buf, "AGC %d%%", g_agc);
             ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 40.0f), buf);
             ImGui::PopStyleColor();
+            
+            ImGui::Columns(1);
             
             ImGui::EndTabItem();
         }
@@ -431,6 +491,9 @@ void TunerUI_Render() {
             ImGui::Spacing(); ImGui::Spacing();
             ImGui::Text("DVB-C Diagnostics");
             ImGui::Separator(); ImGui::Spacing();
+            
+            ImGui::Columns(2, "CableFinderCols", false);
+            ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.45f);
             
             ImGui::PushItemWidth(io.DisplaySize.x * 0.3f);
             
@@ -447,18 +510,59 @@ void TunerUI_Render() {
             ImGui::Spacing();
             if (ImGui::Button("Lock Tuner to Cable", ImVec2(300, 40))) {}
             
-            ImGui::Spacing(); ImGui::Spacing();
+            ImGui::NextColumn();
             
             extern int g_snr, g_agc;
+            
+            // CONSTELLATION DIAGRAM
+            ImGui::Text("Constellation Diagram (QAM64 Plot)");
+            ImVec2 canvas_p = ImGui::GetCursorScreenPos();
+            ImVec2 canvas_size = ImVec2(ImGui::GetWindowWidth() * 0.25f, ImGui::GetWindowWidth() * 0.25f);
+            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            
+            draw_list->AddRectFilled(canvas_p, ImVec2(canvas_p.x + canvas_size.x, canvas_p.y + canvas_size.y), IM_COL32(20, 20, 20, 255));
+            draw_list->AddRect(canvas_p, ImVec2(canvas_p.x + canvas_size.x, canvas_p.y + canvas_size.y), IM_COL32(255, 255, 255, 100));
+            draw_list->AddLine(ImVec2(canvas_p.x + canvas_size.x/2, canvas_p.y), ImVec2(canvas_p.x + canvas_size.x/2, canvas_p.y + canvas_size.y), IM_COL32(255, 255, 255, 100));
+            draw_list->AddLine(ImVec2(canvas_p.x, canvas_p.y + canvas_size.y/2), ImVec2(canvas_p.x + canvas_size.x, canvas_p.y + canvas_size.y/2), IM_COL32(255, 255, 255, 100));
+            
+            float noise_radius = (100.0f - g_snr) * (canvas_size.x / 100.0f);
+            if (noise_radius < 5.0f) noise_radius = 5.0f;
+            
+            ImU32 point_col = IM_COL32(255, 150, 50, 255);
+            if (g_snr < 50) point_col = IM_COL32(255, 255, 50, 255);
+            if (g_snr < 30) point_col = IM_COL32(255, 50, 50, 255);
+            
+            float center_x = canvas_p.x + canvas_size.x / 2.0f;
+            float center_y = canvas_p.y + canvas_size.y / 2.0f;
+            float step = canvas_size.x / 10.0f;
+            
+            for (int ix = -4; ix < 4; ix++) {
+                for (int iy = -4; iy < 4; iy++) {
+                    float cx = center_x + (ix + 0.5f) * step;
+                    float cy = center_y + (iy + 0.5f) * step;
+                    for (int p = 0; p < 5; p++) {
+                        float rx = ((float)rand() / RAND_MAX - 0.5f) * noise_radius;
+                        float ry = ((float)rand() / RAND_MAX - 0.5f) * noise_radius;
+                        draw_list->AddCircleFilled(ImVec2(cx + rx, cy + ry), 1.5f, point_col);
+                    }
+                }
+            }
+            ImGui::Dummy(canvas_size);
+            
+            ImGui::Spacing(); ImGui::Spacing();
+            ImGui::Text("Live Lock Metrics");
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.9f, 0.4f, 0.2f, 1.0f));
             char buf[32]; sprintf(buf, "SNR %d%%", g_snr);
             ImGui::ProgressBar(g_snr / 100.0f, ImVec2(-1.0f, 40.0f), buf);
             ImGui::PopStyleColor();
             
+            ImGui::Spacing();
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.8f, 0.8f, 0.2f, 1.0f));
             sprintf(buf, "AGC %d%%", g_agc);
             ImGui::ProgressBar(g_agc / 100.0f, ImVec2(-1.0f, 40.0f), buf);
             ImGui::PopStyleColor();
+            
+            ImGui::Columns(1);
             
             ImGui::EndTabItem();
         }
