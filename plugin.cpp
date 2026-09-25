@@ -168,16 +168,28 @@ extern "C" const char* StartImGuiPlugin() {
             UpdateExtTelemetry(ext.c_str());
             continue;
         }
-                if (action.rfind("epg_now|", 0) == 0) {
-                    extern void UpdateEPGNow(const char* name, const char* desc);
-                    size_t p1 = action.find('|', 8);
+                if (action.rfind("scan_progress|", 0) == 0) {
+                    extern void UpdateScanProgress(float pct, const char* status, int found, const char* service);
+                    
+                    // Format: scan_progress|0.55|Tuning to 474 MHz|12|BBC One HD
+                    size_t p1 = action.find('|', 14);
                     if (p1 != std::string::npos) {
-                        std::string name = action.substr(8, p1 - 8);
-                        std::string desc = action.substr(p1 + 1);
-                        UpdateEPGNow(name.c_str(), desc.c_str());
+                        float pct = std::stof(action.substr(14, p1 - 14));
+                        size_t p2 = action.find('|', p1 + 1);
+                        if (p2 != std::string::npos) {
+                            std::string status = action.substr(p1 + 1, p2 - p1 - 1);
+                            size_t p3 = action.find('|', p2 + 1);
+                            if (p3 != std::string::npos) {
+                                int found = std::stoi(action.substr(p2 + 1, p3 - p2 - 1));
+                                std::string service = action.substr(p3 + 1);
+                                UpdateScanProgress(pct, status.c_str(), found, service.c_str());
+                            }
+                        }
                     }
                     continue;
                 }
+                
+                if (action.rfind("epg_now|", 0) == 0) {
                 if (action.rfind("epg_next|", 0) == 0) {
                     extern void UpdateEPGNext(const char* name, const char* desc);
                     size_t p1 = action.find('|', 9);

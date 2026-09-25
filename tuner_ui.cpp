@@ -8,7 +8,24 @@ struct HardwareTuner {
     std::string type_flags;
 };
 extern std::vector<HardwareTuner> g_hardware_tuners;
+extern std::vector<HardwareTuner> g_hardware_tuners;
 extern "C" void TriggerPlayback(const char* ref_str);
+
+// Global scan state for IPC
+bool g_g_is_scanning = false;
+float g_g_scan_progress = 0.0f;
+int g_g_found_channels = 0;
+std::string g_g_current_transponder = "";
+std::vector<std::string> g_g_discovered_services;
+
+extern "C" void UpdateScanProgress(float pct, const char* status, int found, const char* service) {
+    g_g_scan_progress = pct;
+    g_g_current_transponder = status;
+    g_g_found_channels = found;
+    if (service && strlen(service) > 0) {
+        g_g_discovered_services.push_back(service);
+    }
+}
 
 #include "imgui/imgui.h"
 #include "pugixml.hpp"
@@ -52,10 +69,6 @@ void TunerUI_Init() {
 }
 
 void TunerUI_Render() {
-    static bool is_scanning = false;
-    static float scan_progress = 0.0f;
-    static int found_channels = 0;
-    static std::string current_transponder = "";
 
     ImGuiIO& io = ImGui::GetIO();
     
@@ -286,10 +299,10 @@ void TunerUI_Render() {
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
             
             if (ImGui::Button("START SCAN", ImVec2(300, 60))) {
-                is_scanning = true;
-                scan_progress = 0.0f;
-                found_channels = 0;
-                current_transponder = "Initializing hardware demodulator...";
+                g_is_scanning = true;
+                g_scan_progress = 0.0f;
+                g_found_channels = 0;
+                g_current_transponder = "Initializing hardware demodulator...";
             }
             ImGui::PopStyleColor();
             
@@ -649,7 +662,7 @@ void TunerUI_Render() {
     ImGui::PopStyleVar();
     
     // Phase 2: Render fully-native ImGui scanning UI overlay
-    if (is_scanning) {
+    if (g_is_scanning) {
         ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.25f, io.DisplaySize.y * 0.35f), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.3f), ImGuiCond_Always);
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.05f, 0.05f, 0.15f, 1.0f));
@@ -662,8 +675,8 @@ void TunerUI_Render() {
         ImGui::Separator(); ImGui::Spacing();
         
         // Advanced DVB-S2 vs DVB-T2 Simulation
-        static std::vector<std::string> discovered_services;
-        if (scan_progress == 0.0f) discovered_services.clear();
+        static std::vector<std::string> g_discovered_services;
+        if (g_scan_progress == 0.0f) g_discovered_services.clear();
         
         bool is_terrestrial = false; // We can dynamically check the selected tuner in the future. For now, let's alternate based on scan_type
         if (g_hardware_tuners.size() > 1) {
@@ -671,66 +684,41 @@ void TunerUI_Render() {
             is_terrestrial = true; 
         }
 
-        if (scan_progress < 1.0f) {
-            scan_progress += 0.005f; 
-            if (scan_progress > 0.1f && scan_progress < 0.3f) {
-                current_transponder = is_terrestrial ? "Tuning to UHF Ch 21 (474 MHz)..." : "Tuning to 12042 MHz, H, 27500...";
-            }
-            else if (scan_progress > 0.3f && scan_progress < 0.6f) { 
-                current_transponder = "Reading PAT/PMT/SDT..."; 
-                found_channels = 3;
-                if (discovered_services.empty()) {
-                    discovered_services.push_back(is_terrestrial ? "BBC One HD" : "Sky News HD");
-                    discovered_services.push_back(is_terrestrial ? "BBC Two HD" : "Sky Sports Main Event");
-                    discovered_services.push_back(is_terrestrial ? "CBBC HD" : "MTV Music");
-                }
-            }
-            else if (scan_progress > 0.6f && scan_progress < 0.8f) { 
-                current_transponder = is_terrestrial ? "Tuning to UHF Ch 24 (498 MHz)..." : "Tuning to 12188 MHz, H, 27500..."; 
-            }
-            else if (scan_progress > 0.8f && scan_progress < 1.0f) { 
-                current_transponder = "Extracting service identifiers..."; 
-                found_channels = 6;
-                if (discovered_services.size() == 3) {
-                    discovered_services.push_back(is_terrestrial ? "ITV1 HD" : "Discovery Channel");
-                    discovered_services.push_back(is_terrestrial ? "Channel 4 HD" : "National Geographic");
-                    discovered_services.push_back(is_terrestrial ? "Channel 5 HD" : "Comedy Central");
-                }
-            }
-        } else {
-            current_transponder = "Scan Complete! Writing to lamedb...";
+        // Wait for real Python IPC updates!
+        if (g_scan_progress >= 1.0f) {
+            g_current_transponder = "Scan Complete! Writing to lamedb...";
         }
         
-        ImGui::Text("Status: %s", current_transponder.c_str());
+        ImGui::Text("Status: %s", g_current_transponder.c_str());
         ImGui::Spacing();
         
         ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
-        char buf[32]; snprintf(buf, sizeof(buf), "%d%%", (int)(scan_progress * 100));
-        ImGui::ProgressBar(scan_progress, ImVec2(-1.0f, 30.0f), buf);
+        char buf[32]; snprintf(buf, sizeof(buf), "%d%%", (int)(g_scan_progress * 100));
+        ImGui::ProgressBar(g_scan_progress, ImVec2(-1.0f, 30.0f), buf);
         ImGui::PopStyleColor();
         
         ImGui::Spacing();
-        ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.2f, 1.0f), "Services Found: %d", found_channels);
+        ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.2f, 1.0f), "Services Found: %d", g_found_channels);
         
         // Render the list of found services in a small scrollable box
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.02f, 0.02f, 0.05f, 1.0f));
         ImGui::BeginChild("FoundServicesList", ImVec2(-1.0f, 100.0f), true);
-        for (const auto& srv : discovered_services) {
+        for (const auto& srv : g_discovered_services) {
             ImGui::Text(" %s", srv.c_str());
         }
         ImGui::EndChild();
         ImGui::PopStyleColor();
         
         ImGui::Spacing(); ImGui::Spacing();
-        if (scan_progress >= 1.0f) {
+        if (g_scan_progress >= 1.0f) {
             ImGui::SetItemDefaultFocus(); // Ensure remote control highlights OK button!
             if (ImGui::Button("OK - Save and Exit", ImVec2(250, 50))) {
-                is_scanning = false;
+                g_is_scanning = false;
             }
         } else {
             ImGui::SetItemDefaultFocus();
             if (ImGui::Button("Abort Scan", ImVec2(250, 50))) {
-                is_scanning = false;
+                g_is_scanning = false;
             }
         }
         
