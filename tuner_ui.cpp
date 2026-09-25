@@ -36,14 +36,6 @@ int g_g_found_channels = 0;
 std::string g_g_current_transponder = "";
 std::vector<std::string> g_g_discovered_services;
 
-extern "C" void UpdateScanProgress(float pct, const char* status, int found, const char* service) {
-    g_g_scan_progress = pct;
-    g_g_current_transponder = status;
-    g_g_found_channels = found;
-    if (service && strlen(service) > 0) {
-        g_g_discovered_services.push_back(service);
-    }
-}
 
 #include "imgui/imgui.h"
 #include "pugixml.hpp"
