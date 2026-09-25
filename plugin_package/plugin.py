@@ -459,36 +459,45 @@ class ImGuiHostScreen(Screen):
             if ref_str.startswith("start_scan|"):
                 try:
                     from enigma import eDVBFrontendParametersTerrestrial
+                    from Components.NimManager import nimmanager, getInitialTerrestrialTransponderList
                     
                     scan_type = int(ref_str.split('|')[1])
                     tuner_index = 1  # Tuner B (DVB-T2/C)
                     
-                    # Build a minimal DVB-T2 transponder — let hardware auto-detect the rest
-                    tp = eDVBFrontendParametersTerrestrial()
-                    tp.frequency = 474000000  # 474 MHz UHF Ch21
-                    # Use integer 0 for Auto/Unknown on all optional params
-                    try:
-                        tp.bandwidth = eDVBFrontendParametersTerrestrial.Bandwidth_8MHz
-                    except AttributeError:
+                    # Load the full regional UHF transponder list directly from STB database
+                    tlist = []
+                    region = nimmanager.getTerrestrialDescription(tuner_index)
+                    if not region:
+                        region = "Europe, Middle East, Africa: DVB-T/T2 Frequencies"
+                    getInitialTerrestrialTransponderList(tlist, region)
+                    
+                    # Log what we loaded for debugging
+                    with open("/tmp/scanner_debug.txt", "w") as dbg:
+                        dbg.write("Region: %s\nTransponders: %d\n" % (region, len(tlist)))
+                    
+                    if not tlist:
+                        with open("/tmp/scanner_debug.txt", "a") as dbg:
+                            dbg.write("WARNING: tlist empty, falling back to 474 MHz\n")
+                        tp = eDVBFrontendParametersTerrestrial()
+                        tp.frequency = 474000000
                         tp.bandwidth = 8000000
-                    try:
-                        tp.system = eDVBFrontendParametersTerrestrial.System_DVB_T2
-                    except AttributeError:
-                        tp.system = 1
-                    tp.inversion = 2   # Inversion_Unknown
-                    tp.modulation = 0  # Auto
-                    tp.transmission_mode = 0  # Auto
-                    tp.guard_interval = 0  # Auto
-                    tp.hierarchy = 0   # Auto
-                    tp.code_rate_HP = 0  # Auto
-                    tp.code_rate_LP = 0  # Auto
+                        tp.system = 1  # DVB-T2
+                        tp.inversion = 2
+                        tp.modulation = 0
+                        tp.transmission_mode = 0
+                        tp.guard_interval = 0
+                        tp.hierarchy = 0
+                        tp.code_rate_HP = 0
+                        tp.code_rate_LP = 0
+                        tlist = [tp]
                     
                     scanList = [{
                         "feid": tuner_index,
                         "flags": 0,
                         "networkid": 0,
-                        "transponders": [tp]
+                        "transponders": tlist
                     }]
+
                     
                     # Wire up the IPC send callback directly from self
                     def _send_to_imgui(msg):
