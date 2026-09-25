@@ -385,16 +385,28 @@ class ImGuiHostScreen(Screen):
         pending = self.imgui_lib.GetPendingPlayback()
         if pending:
             ref_str = pending.decode('utf-8')
-            print(f"[ImGui] Changing channel to: {ref_str}")
-            self.session.nav.playService(eServiceReference(ref_str))
-            
-            # Close underlying menus (PluginBrowser) so video shows through our transparent background!
-            try:
-                for dialog in self.session.dialog_stack:
-                    if dialog != self and hasattr(dialog, "close"):
-                        dialog.close()
-            except Exception as e:
-                print(f"[ImGui] Failed to close background menus: {e}")
+            if ref_str.startswith("start_scan|"):
+                try:
+                    from Screens.ScanSetup import ScanSetup
+                    self.session.open(ScanSetup)
+                    # We MUST kill the ImGui overlay so the user can actually see and interact with the native Enigma2 Scan Setup wizard!
+                    global g_imgui_running
+                    g_imgui_running = False
+                    self.timer.stop()
+                    self.close()
+                except Exception as e:
+                    print(f"[ImGui] Failed to launch ScanSetup: {e}")
+            else:
+                print(f"[ImGui] Changing channel to: {ref_str}")
+                self.session.nav.playService(eServiceReference(ref_str))
+                
+                # Close underlying menus (PluginBrowser) so video shows through our transparent background!
+                try:
+                    for dialog in self.session.dialog_stack:
+                        if dialog != self and hasattr(dialog, "close"):
+                            dialog.close()
+                except Exception as e:
+                    print(f"[ImGui] Failed to close background menus: {e}")
                 
         if not g_imgui_running:
             self.timer.stop()
