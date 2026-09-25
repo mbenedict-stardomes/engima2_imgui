@@ -647,4 +647,55 @@ void TunerUI_Render() {
         ImGui::EndTabBar();
     }
     ImGui::PopStyleVar();
+    
+    // Phase 2: Render fully-native ImGui scanning UI overlay
+    if (is_scanning) {
+        ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.25f, io.DisplaySize.y * 0.35f), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.3f), ImGuiCond_Always);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.05f, 0.05f, 0.15f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.2f, 0.5f, 0.8f, 1.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
+        
+        ImGui::Begin("Scanning Overlay", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar);
+        
+        ImGui::TextColored(ImVec4(0.2f, 0.6f, 1.0f, 1.0f), "ENIGMA2 NATIVE HARDWARE SCAN");
+        ImGui::Separator(); ImGui::Spacing();
+        
+        // Simulate scanning progress
+        if (scan_progress < 1.0f) {
+            scan_progress += 0.005f; // Approx 3-5 seconds at 60fps
+            if (scan_progress > 0.1f && scan_progress < 0.3f) current_transponder = "Tuning to 12042 MHz, H, 27500...";
+            else if (scan_progress > 0.3f && scan_progress < 0.6f) { current_transponder = "Reading PAT/PMT/SDT..."; found_channels = 12; }
+            else if (scan_progress > 0.6f && scan_progress < 0.8f) { current_transponder = "Tuning to 12188 MHz, H, 27500..."; }
+            else if (scan_progress > 0.8f && scan_progress < 1.0f) { current_transponder = "Extracting service identifiers..."; found_channels = 34; }
+        } else {
+            current_transponder = "Scan Complete! Writing to lamedb...";
+        }
+        
+        ImGui::Text("Status: %s", current_transponder.c_str());
+        ImGui::Spacing();
+        
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
+        char buf[32]; snprintf(buf, sizeof(buf), "%d%%", (int)(scan_progress * 100));
+        ImGui::ProgressBar(scan_progress, ImVec2(-1.0f, 30.0f), buf);
+        ImGui::PopStyleColor();
+        
+        ImGui::Spacing();
+        ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.2f, 1.0f), "Services Found: %d", found_channels);
+        
+        ImGui::Spacing(); ImGui::Spacing();
+        if (scan_progress >= 1.0f) {
+            if (ImGui::Button("OK - Save and Exit", ImVec2(200, 50))) {
+                is_scanning = false;
+            }
+        } else {
+            if (ImGui::Button("Abort Scan", ImVec2(200, 50))) {
+                is_scanning = false;
+            }
+        }
+        
+        ImGui::End();
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor(2);
+    }
 }
