@@ -170,22 +170,27 @@ extern "C" const char* StartImGuiPlugin() {
         }
                 if (action.rfind("scan_progress|", 0) == 0) {
                     extern void UpdateScanProgress(float pct, const char* status, int found, const char* service);
-                    
-                    // Format: scan_progress|0.55|Tuning to 474 MHz|12|BBC One HD
-                    size_t p1 = action.find('|', 14);
-                    if (p1 != std::string::npos) {
-                        float pct = std::stof(action.substr(14, p1 - 14));
-                        size_t p2 = action.find('|', p1 + 1);
-                        if (p2 != std::string::npos) {
-                            std::string status = action.substr(p1 + 1, p2 - p1 - 1);
-                            size_t p3 = action.find('|', p2 + 1);
-                            if (p3 != std::string::npos) {
-                                int found = std::stoi(action.substr(p2 + 1, p3 - p2 - 1));
-                                std::string service = action.substr(p3 + 1);
+                    try {
+                        // Format: scan_progress|0.55|Tuning to 474 MHz|12|BBC One HD
+                        size_t p1 = action.find('|', 14);
+                        if (p1 != std::string::npos) {
+                            float pct = std::stof(action.substr(14, p1 - 14));
+                            size_t p2 = action.find('|', p1 + 1);
+                            if (p2 != std::string::npos) {
+                                std::string status = action.substr(p1 + 1, p2 - p1 - 1);
+                                size_t p3 = action.find('|', p2 + 1);
+                                std::string service = "";
+                                int found = 0;
+                                if (p3 != std::string::npos) {
+                                    found = std::stoi(action.substr(p2 + 1, p3 - p2 - 1));
+                                    service = action.substr(p3 + 1);
+                                } else {
+                                    found = std::stoi(action.substr(p2 + 1));
+                                }
                                 UpdateScanProgress(pct, status.c_str(), found, service.c_str());
                             }
                         }
-                    }
+                    } catch (...) { /* malformed IPC message — ignore */ }
                     continue;
                 }
                 

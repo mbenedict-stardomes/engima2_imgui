@@ -1,8 +1,9 @@
 #include "tuner_ui.h"
 #include <vector>
 #include <cstring>
+#include <string>
 
-// Global scan state for IPC
+// Global scan state for IPC - written by UpdateScanProgress, read by TunerUI_Render
 bool g_is_scanning = false;
 float g_scan_progress = 0.0f;
 int g_found_channels = 0;
@@ -13,12 +14,13 @@ extern "C" void UpdateScanProgress(float pct, const char* status, int found, con
     g_scan_progress = pct;
     g_current_transponder = status;
     g_found_channels = found;
+    // Append only non-empty, non-duplicate service names
     if (service && strlen(service) > 0) {
-        g_discovered_services.push_back(service);
+        if (g_discovered_services.empty() || g_discovered_services.back() != service) {
+            g_discovered_services.push_back(service);
+        }
     }
 }
-
-#include <string>
 
 struct HardwareTuner {
     int slot_id;
@@ -26,15 +28,7 @@ struct HardwareTuner {
     std::string type_flags;
 };
 extern std::vector<HardwareTuner> g_hardware_tuners;
-extern std::vector<HardwareTuner> g_hardware_tuners;
 extern "C" void TriggerPlayback(const char* ref_str);
-
-// Global scan state for IPC
-bool g_g_is_scanning = false;
-float g_g_scan_progress = 0.0f;
-int g_g_found_channels = 0;
-std::string g_g_current_transponder = "";
-std::vector<std::string> g_g_discovered_services;
 
 
 #include "imgui/imgui.h"
@@ -313,9 +307,17 @@ void TunerUI_Render() {
                 g_scan_progress = 0.0f;
                 g_found_channels = 0;
                 g_current_transponder = "Initializing hardware demodulator...";
+                g_discovered_services.clear();  // Clear stale services from previous scan
+                
+                // Determine which tuner slot is selected in the UI
+                // auto_tuner: 0=All, 1=Tuner A (slot 0), 2=Tuner B (slot 1)
+                // We pass the actual slot index. 255 = scan all.
+                int tuner_slot = (scan_type == 0) ? 1 : 1; // TODO: read from auto_tuner combo
+                int do_clear   = 1; // Always clear for now; wire from checkbox later
                 
                 char scan_action[128];
-                snprintf(scan_action, sizeof(scan_action), "start_scan|%d", scan_type);
+                snprintf(scan_action, sizeof(scan_action), "start_scan|%d|%d|%d",
+                         scan_type, tuner_slot, do_clear);
                 TriggerPlayback(scan_action);
             }
             ImGui::PopStyleColor();
@@ -688,17 +690,7 @@ void TunerUI_Render() {
         ImGui::TextColored(ImVec4(0.2f, 0.6f, 1.0f, 1.0f), "ENIGMA2 NATIVE HARDWARE SCAN");
         ImGui::Separator(); ImGui::Spacing();
         
-        // Advanced DVB-S2 vs DVB-T2 Simulation
-        static std::vector<std::string> g_discovered_services;
-        if (g_scan_progress == 0.0f) g_discovered_services.clear();
-        
-        bool is_terrestrial = false; // We can dynamically check the selected tuner in the future. For now, let's alternate based on scan_type
-        if (g_hardware_tuners.size() > 1) {
-            // Assume tuner B is terrestrial for the prototype if auto_tuner >= 2 or blind_tuner == 1
-            is_terrestrial = true; 
-        }
-
-        // Wait for real Python IPC updates!
+        // Status driven entirely by real Python IPC updates via UpdateScanProgress()
         if (g_scan_progress >= 1.0f) {
             g_current_transponder = "Scan Complete! Writing to lamedb...";
         }

@@ -145,10 +145,9 @@ def run_imgui_thread(xml_data, plugin_path):
 
 # Directly wrap CScan (Components.ServiceScan.ServiceScan) to avoid GUI widget dependencies
 from Components.ServiceScan import ServiceScan as CScanBackend
-from enigma import eTimer as _eTimer
 
 class _Stub:
-    """Minimal stub that satisfies CScan's progressbar/text/servicelist/passNumber/network/transponder/frontendInfo args."""
+    """Minimal stub that satisfies CScan's widget args — no real GUI needed."""
     def setValue(self, v): pass
     def setText(self, v): pass
     def addItem(self, v): pass
@@ -163,55 +162,101 @@ class _LCDStub:
 
 class DirectScanner:
     """Drives eComponentScan directly without any Enigma2 screen widgets."""
-    def __init__(self, send_action_fn, scanList):
-        self._send = send_action_fn
+    def __init__(self, send_action_fn, scanList, session=None):
+        self._send    = send_action_fn
+        self._session = session
+        self._services = []
         stub = _Stub()
         self._cscan = CScanBackend(
-            progressbar=stub,
-            text=stub,
-            servicelist=stub,
-            passNumber=stub,
-            scanList=scanList,
-            network=stub,
-            transponder=stub,
-            frontendInfo=stub,
-            lcd_summary=_LCDStub()
+            progressbar=stub, text=stub, servicelist=stub,
+            passNumber=stub, scanList=scanList, network=stub,
+            transponder=stub, frontendInfo=stub, lcd_summary=_LCDStub()
         )
+        # Patch callbacks before execBegin so they are in place when the first
+        # statusChanged fires (which can happen synchronously inside execBegin).
         self._cscan.scanStatusChanged = self._on_status
-        self._cscan.newService = self._on_service
-        self._services = []
+        self._cscan.newService        = self._on_service
 
     def start(self):
+        # Fix 5: Stop live service so the tuner is free
+        try:
+            if self._session:
+                self._prev_service = self._session.nav.getCurrentlyPlayingServiceOrGroup()
+                self._session.nav.stopService()
+        except:
+            self._prev_service = None
         self._cscan.execBegin()
 
-    def _on_status(self):
+    def abort(self):
         try:
-            prog = self._cscan.scan.getProgress() if self._cscan.scan else 0
-            num  = len(self._services)
-            tp   = "Scanning..."
-            if self._cscan.scan:
-                cur = self._cscan.scan.getCurrentTransponder()
-                if cur:
-                    t = cur.getDVBT()
-                    tp = "%.1f MHz" % (t.frequency / 1e6)
-            # Done?
-            if self._cscan.isDone():
-                tp = "Scan Complete! Writing to lamedb..."
-                prog = 100
-            svc_name = self._services[-1] if self._services else ""
-            msg = "scan_progress|%.2f|%s|%d|%s" % (prog / 100.0, tp, num, svc_name)
-            self._send(msg)
-        except Exception as e:
-            with open("/tmp/scanner_debug.txt", "a") as f:
-                import traceback; traceback.print_exc(file=f)
-
-    def _on_service(self):
-        try:
-            name = self._cscan.scan.getLastServiceName()
-            self._services.append(name)
-            self._on_status()
+            self._cscan.destroy()
         except:
             pass
+        self._restore_service()
+
+    def _restore_service(self):
+        try:
+            if self._session and self._prev_service:
+                self._session.nav.playService(self._prev_service)
+        except:
+            pass
+
+    def _on_status(self):
+        """Fix 1: Read from the low-level scan object directly."""
+        try:
+            scan = self._cscan.scan   # this is the eComponentScan object
+            if scan is None:
+                return
+
+            prog = scan.getProgress()   # 0-100 integer
+            num  = scan.getNumServices()
+            tp   = "Scanning..."
+
+            # Get current transponder description
+            cur = scan.getCurrentTransponder()
+            if cur:
+                try:
+                    t = cur.getDVBT()
+                    tp = "%.1f MHz" % (t.frequency / 1e6)
+                except:
+                    try:
+                        t = cur.getDVBS()
+                        tp = "%d MHz" % (t.frequency // 1000)
+                    except:
+                        pass
+
+            # Fix 1: Detect done/error via the low-level scan object
+            if scan.isDone():
+                err = scan.getError()
+                if err == 0:
+                    prog = 100
+                    tp = "Scan Complete! Writing to lamedb..."
+                    self._restore_service()
+                else:
+                    tp = "Scan Error: %d" % err
+                    prog = 100
+
+            # Send status update (no service name here — only from _on_service)
+            msg = "scan_progress|%.3f|%s|%d|" % (prog / 100.0, tp, num)
+            self._send(msg)
+        except Exception:
+            with open("/tmp/scanner_debug.txt", "a") as f:
+                import traceback; traceback.print_exc(file=f)
+            self._send("scan_progress|0.00|ERROR - check /tmp/scanner_debug.txt|0|")
+
+    def _on_service(self):
+        """Send new service name only once, from here."""
+        try:
+            name = self._cscan.scan.getLastServiceName()
+            if name and (not self._services or self._services[-1] != name):
+                self._services.append(name)
+                num = self._cscan.scan.getNumServices()
+                prog = self._cscan.scan.getProgress()
+                msg = "scan_progress|%.3f|Scanning...|%d|%s" % (prog / 100.0, num, name)
+                self._send(msg)
+        except Exception:
+            pass
+
 
 class ImGuiHostScreen(Screen):
     # This screen covers Enigma2 with a solid black background, hiding the Plugin Browser!
@@ -456,50 +501,51 @@ class ImGuiHostScreen(Screen):
         pending = self.imgui_lib.GetPendingPlayback()
         if pending:
             ref_str = pending.decode('utf-8')
+            
+            # ── ABORT SCAN ───────────────────────────────────────────
+            if ref_str == "abort_scan":
+                if hasattr(self, 'scanner') and self.scanner:
+                    self.scanner.abort()
+                    self.scanner = None
+                return
+            
+            # ── START SCAN ───────────────────────────────────────────
+            # Format from C++: start_scan|<type>|<slot>|<clear>
             if ref_str.startswith("start_scan|"):
+                # Refuse if a scan is already running
+                if hasattr(self, 'scanner') and self.scanner:
+                    return
                 try:
-                    from enigma import eDVBFrontendParametersTerrestrial
                     from Components.NimManager import nimmanager, getInitialTerrestrialTransponderList
                     
-                    scan_type = int(ref_str.split('|')[1])
-                    tuner_index = 1  # Tuner B (DVB-T2/C)
+                    parts      = ref_str.split('|')
+                    scan_type  = int(parts[1]) if len(parts) > 1 else 0
+                    tuner_slot = int(parts[2]) if len(parts) > 2 else 1
+                    do_clear   = int(parts[3]) if len(parts) > 3 else 0
                     
-                    # Load the full regional UHF transponder list directly from STB database
-                    tlist = []
-                    region = nimmanager.getTerrestrialDescription(tuner_index)
+                    flags = 0
+                    if do_clear:
+                        from enigma import eComponentScan
+                        flags |= eComponentScan.scanRemoveServices
+                    
+                    # Load full regional UHF transponder list from STB database
+                    tlist  = []
+                    region = nimmanager.getTerrestrialDescription(tuner_slot)
                     if not region:
                         region = "Europe, Middle East, Africa: DVB-T/T2 Frequencies"
                     getInitialTerrestrialTransponderList(tlist, region)
                     
-                    # Log what we loaded for debugging
+                    # Debug log
                     with open("/tmp/scanner_debug.txt", "w") as dbg:
-                        dbg.write("Region: %s\nTransponders: %d\n" % (region, len(tlist)))
+                        dbg.write("Region: %s\nTransponders: %d\nSlot: %d\nFlags: %d\n"
+                                  % (region, len(tlist), tuner_slot, flags))
                     
                     if not tlist:
-                        with open("/tmp/scanner_debug.txt", "a") as dbg:
-                            dbg.write("WARNING: tlist empty, falling back to 474 MHz\n")
-                        tp = eDVBFrontendParametersTerrestrial()
-                        tp.frequency = 474000000
-                        tp.bandwidth = 8000000
-                        tp.system = 1  # DVB-T2
-                        tp.inversion = 2
-                        tp.modulation = 0
-                        tp.transmission_mode = 0
-                        tp.guard_interval = 0
-                        tp.hierarchy = 0
-                        tp.code_rate_HP = 0
-                        tp.code_rate_LP = 0
-                        tlist = [tp]
+                        raise RuntimeError("No transponders loaded for region: %s" % region)
                     
-                    scanList = [{
-                        "feid": tuner_index,
-                        "flags": 0,
-                        "networkid": 0,
-                        "transponders": tlist
-                    }]
-
+                    scanList = [{"feid": tuner_slot, "flags": flags,
+                                 "networkid": 0, "transponders": tlist}]
                     
-                    # Wire up the IPC send callback directly from self
                     def _send_to_imgui(msg):
                         try:
                             self.imgui_lib.SendImGuiAction.argtypes = [ctypes.c_char_p]
@@ -507,35 +553,31 @@ class ImGuiHostScreen(Screen):
                         except:
                             pass
                     
-                    self.scanner = DirectScanner(_send_to_imgui, scanList)
+                    self.scanner = DirectScanner(_send_to_imgui, scanList, session=self.session)
                     self.scanner.start()
                     
-                except Exception as e:
+                except Exception:
                     import traceback
-                    with open("/tmp/scanner_debug.txt", "w") as f:
+                    with open("/tmp/scanner_debug.txt", "a") as f:
                         traceback.print_exc(file=f)
+                    try:
+                        self.imgui_lib.SendImGuiAction.argtypes = [ctypes.c_char_p]
+                        self.imgui_lib.SendImGuiAction(b"scan_progress|0.00|ERROR starting scan|0|")
+                    except:
+                        pass
                 return
-                try:
-                    from Screens.ScanSetup import ScanSetup
-                    self.session.open(ScanSetup)
-                    # We MUST kill the ImGui overlay so the user can actually see and interact with the native Enigma2 Scan Setup wizard!
-                    global g_imgui_running
-                    g_imgui_running = False
-                    self.timer.stop()
-                    self.close()
-                except Exception as e:
-                    print(f"[ImGui] Failed to launch ScanSetup: {e}")
-            else:
-                print(f"[ImGui] Changing channel to: {ref_str}")
-                self.session.nav.playService(eServiceReference(ref_str))
-                
-                # Close underlying menus (PluginBrowser) so video shows through our transparent background!
-                try:
-                    for dialog in self.session.dialog_stack:
-                        if dialog != self and hasattr(dialog, "close"):
-                            dialog.close()
-                except Exception as e:
-                    print(f"[ImGui] Failed to close background menus: {e}")
+            
+            # ── CHANNEL CHANGE ───────────────────────────────────────
+            print(f"[ImGui] Changing channel to: {ref_str}")
+            self.session.nav.playService(eServiceReference(ref_str))
+            # Close underlying menus (PluginBrowser) so video shows through
+            try:
+                for dialog in self.session.dialog_stack:
+                    if dialog != self and hasattr(dialog, "close"):
+                        dialog.close()
+            except Exception as e:
+                print(f"[ImGui] Failed to close background menus: {e}")
+
                 
         if not g_imgui_running:
             self.timer.stop()
