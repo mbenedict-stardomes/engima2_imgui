@@ -463,18 +463,25 @@ class ImGuiHostScreen(Screen):
                     scan_type = int(ref_str.split('|')[1])
                     tuner_index = 1  # Tuner B (DVB-T2/C)
                     
-                    # Build a real DVB-T2 transponder object at 474 MHz UHF Ch21
+                    # Build a minimal DVB-T2 transponder — let hardware auto-detect the rest
                     tp = eDVBFrontendParametersTerrestrial()
-                    tp.frequency = 474000000
-                    tp.bandwidth = eDVBFrontendParametersTerrestrial.Bandwidth_8MHz
-                    tp.modulation = eDVBFrontendParametersTerrestrial.Modulation_Auto
-                    tp.transmission_mode = eDVBFrontendParametersTerrestrial.TransmissionMode_Auto
-                    tp.guard_interval = eDVBFrontendParametersTerrestrial.GuardInterval_Auto
-                    tp.hierarchy = eDVBFrontendParametersTerrestrial.Hierarchy_Auto
-                    tp.code_rate_HP = eDVBFrontendParametersTerrestrial.FecAuto
-                    tp.code_rate_LP = eDVBFrontendParametersTerrestrial.FecAuto
-                    tp.inversion = eDVBFrontendParametersTerrestrial.Inversion_Unknown
-                    tp.system = eDVBFrontendParametersTerrestrial.System_DVB_T2
+                    tp.frequency = 474000000  # 474 MHz UHF Ch21
+                    # Use integer 0 for Auto/Unknown on all optional params
+                    try:
+                        tp.bandwidth = eDVBFrontendParametersTerrestrial.Bandwidth_8MHz
+                    except AttributeError:
+                        tp.bandwidth = 8000000
+                    try:
+                        tp.system = eDVBFrontendParametersTerrestrial.System_DVB_T2
+                    except AttributeError:
+                        tp.system = 1
+                    tp.inversion = 2   # Inversion_Unknown
+                    tp.modulation = 0  # Auto
+                    tp.transmission_mode = 0  # Auto
+                    tp.guard_interval = 0  # Auto
+                    tp.hierarchy = 0   # Auto
+                    tp.code_rate_HP = 0  # Auto
+                    tp.code_rate_LP = 0  # Auto
                     
                     scanList = [{
                         "feid": tuner_index,
