@@ -143,28 +143,73 @@ def run_imgui_thread(xml_data, plugin_path):
     g_imgui_running = False
 
 
-from Screens.ServiceScan import ServiceScan
-class HeadlessServiceScan(ServiceScan):
-    def __init__(self, session, scanList):
-        ServiceScan.__init__(self, session, scanList)
-        self.skin = "<screen position=\"0,0\" size=\"0,0\" flags=\"wfNoBorder\"/>"
-        self.onFirstExecBegin.remove(self.doServiceScan) # Don't start automatically on show, we will start it manually
-        
-    def do_scan(self):
-        self.doServiceScan()
-        
-    def scanStatusChanged(self):
-        ServiceScan.scanStatusChanged(self)
+# Directly wrap CScan (Components.ServiceScan.ServiceScan) to avoid GUI widget dependencies
+from Components.ServiceScan import ServiceScan as CScanBackend
+from enigma import eTimer as _eTimer
+
+class _Stub:
+    """Minimal stub that satisfies CScan's progressbar/text/servicelist/passNumber/network/transponder/frontendInfo args."""
+    def setValue(self, v): pass
+    def setText(self, v): pass
+    def addItem(self, v): pass
+    def clear(self): pass
+    def listAll(self): pass
+    def updateFrontendData(self): pass
+    frontend_source = None
+
+class _LCDStub:
+    def updateProgress(self, v): pass
+    def updateService(self, v): pass
+
+class DirectScanner:
+    """Drives eComponentScan directly without any Enigma2 screen widgets."""
+    def __init__(self, send_action_fn, scanList):
+        self._send = send_action_fn
+        stub = _Stub()
+        self._cscan = CScanBackend(
+            progressbar=stub,
+            text=stub,
+            servicelist=stub,
+            passNumber=stub,
+            scanList=scanList,
+            network=stub,
+            transponder=stub,
+            frontendInfo=stub,
+            lcd_summary=_LCDStub()
+        )
+        self._cscan.scanStatusChanged = self._on_status
+        self._cscan.newService = self._on_service
+        self._services = []
+
+    def start(self):
+        self._cscan.execBegin()
+
+    def _on_status(self):
         try:
-            if hasattr(self, 'scan') and self.scan:
-                prog = self.scan.getProgress()
-                svc = self.scan.getNumServices()
-                msg = f"scan_progress|{prog / 100.0}|Scanning...|{svc}"
-                
-                plugin_path = os.path.dirname(os.path.realpath(__file__)) + "/libimgui_plugin.so"
-                imgui_lib = ctypes.CDLL(plugin_path)
-                imgui_lib.SendImGuiAction.argtypes = [ctypes.c_char_p]
-                imgui_lib.SendImGuiAction(msg.encode('utf-8'))
+            prog = self._cscan.scan.getProgress() if self._cscan.scan else 0
+            num  = len(self._services)
+            tp   = "Scanning..."
+            if self._cscan.scan:
+                cur = self._cscan.scan.getCurrentTransponder()
+                if cur:
+                    t = cur.getDVBT()
+                    tp = "%.1f MHz" % (t.frequency / 1e6)
+            # Done?
+            if self._cscan.isDone():
+                tp = "Scan Complete! Writing to lamedb..."
+                prog = 100
+            svc_name = self._services[-1] if self._services else ""
+            msg = "scan_progress|%.2f|%s|%d|%s" % (prog / 100.0, tp, num, svc_name)
+            self._send(msg)
+        except Exception as e:
+            with open("/tmp/scanner_debug.txt", "a") as f:
+                import traceback; traceback.print_exc(file=f)
+
+    def _on_service(self):
+        try:
+            name = self._cscan.scan.getLastServiceName()
+            self._services.append(name)
+            self._on_status()
         except:
             pass
 
@@ -413,16 +458,23 @@ class ImGuiHostScreen(Screen):
             ref_str = pending.decode('utf-8')
             if ref_str.startswith("start_scan|"):
                 try:
-                    from enigma import eDVBFrontendParametersTerrestrial, eDVBFrontendParametersSatellite, eComponentScan
+                    from enigma import eDVBFrontendParametersTerrestrial
                     
-                    # For prototype, we will scan Tuner B (DVB-T2) with a mock UHF channel (e.g. 474 MHz)
-                    # Or Tuner A (DVB-S2) with 12042 MHz. Let's build a real scanList.
                     scan_type = int(ref_str.split('|')[1])
-                    tuner_index = 1 # Assuming Tuner B (DVB-T2)
+                    tuner_index = 1  # Tuner B (DVB-T2/C)
                     
+                    # Build a real DVB-T2 transponder object at 474 MHz UHF Ch21
                     tp = eDVBFrontendParametersTerrestrial()
-                    tp.frequency = 474000000 # 474 MHz
+                    tp.frequency = 474000000
                     tp.bandwidth = eDVBFrontendParametersTerrestrial.Bandwidth_8MHz
+                    tp.modulation = eDVBFrontendParametersTerrestrial.Modulation_Auto
+                    tp.transmission_mode = eDVBFrontendParametersTerrestrial.TransmissionMode_Auto
+                    tp.guard_interval = eDVBFrontendParametersTerrestrial.GuardInterval_Auto
+                    tp.hierarchy = eDVBFrontendParametersTerrestrial.Hierarchy_Auto
+                    tp.code_rate_HP = eDVBFrontendParametersTerrestrial.FecAuto
+                    tp.code_rate_LP = eDVBFrontendParametersTerrestrial.FecAuto
+                    tp.inversion = eDVBFrontendParametersTerrestrial.Inversion_Unknown
+                    tp.system = eDVBFrontendParametersTerrestrial.System_DVB_T2
                     
                     scanList = [{
                         "feid": tuner_index,
@@ -431,20 +483,21 @@ class ImGuiHostScreen(Screen):
                         "transponders": [tp]
                     }]
                     
-                    class DummySession:
-                        postScanService = None
-                        class nav:
-                            @staticmethod
-                            def stopService(): pass
+                    # Wire up the IPC send callback directly from self
+                    def _send_to_imgui(msg):
+                        try:
+                            self.imgui_lib.SendImGuiAction.argtypes = [ctypes.c_char_p]
+                            self.imgui_lib.SendImGuiAction(msg.encode('utf-8'))
+                        except:
+                            pass
                     
-                    # Instantiate headless scanner
-                    self.scanner = HeadlessServiceScan(DummySession(), scanList)
-                    self.scanner.do_scan()
+                    self.scanner = DirectScanner(_send_to_imgui, scanList)
+                    self.scanner.start()
+                    
                 except Exception as e:
                     import traceback
-                    with open("/tmp/scanlist.txt", "w") as f:
+                    with open("/tmp/scanner_debug.txt", "w") as f:
                         traceback.print_exc(file=f)
-                        
                 return
                 try:
                     from Screens.ScanSetup import ScanSetup
