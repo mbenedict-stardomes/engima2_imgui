@@ -52,6 +52,11 @@ void TunerUI_Init() {
 }
 
 void TunerUI_Render() {
+    static bool is_scanning = false;
+    static float scan_progress = 0.0f;
+    static int found_channels = 0;
+    static std::string current_transponder = "";
+
     ImGuiIO& io = ImGui::GetIO();
     
     ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "ADVANCED TUNER MANAGEMENT");
@@ -281,9 +286,10 @@ void TunerUI_Render() {
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
             
             if (ImGui::Button("START SCAN", ImVec2(300, 60))) {
-                char scan_action[128];
-                snprintf(scan_action, sizeof(scan_action), "start_scan|%d", scan_type);
-                TriggerPlayback(scan_action);
+                is_scanning = true;
+                scan_progress = 0.0f;
+                found_channels = 0;
+                current_transponder = "Initializing hardware demodulator...";
             }
             ImGui::PopStyleColor();
             
