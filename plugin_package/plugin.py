@@ -142,6 +142,32 @@ def run_imgui_thread(xml_data, plugin_path):
         
     g_imgui_running = False
 
+
+from Screens.ServiceScan import ServiceScan
+class HeadlessServiceScan(ServiceScan):
+    def __init__(self, session, scanList):
+        ServiceScan.__init__(self, session, scanList)
+        self.skin = "<screen position=\"0,0\" size=\"0,0\" flags=\"wfNoBorder\"/>"
+        self.onFirstExecBegin.remove(self.doServiceScan) # Don't start automatically on show, we will start it manually
+        
+    def do_scan(self):
+        self.doServiceScan()
+        
+    def scanStatusChanged(self):
+        ServiceScan.scanStatusChanged(self)
+        try:
+            if hasattr(self, 'scan') and self.scan:
+                prog = self.scan.getProgress()
+                svc = self.scan.getNumServices()
+                msg = f"scan_progress|{prog / 100.0}|Scanning...|{svc}"
+                
+                plugin_path = os.path.dirname(os.path.realpath(__file__)) + "/libimgui_plugin.so"
+                imgui_lib = ctypes.CDLL(plugin_path)
+                imgui_lib.SendImGuiAction.argtypes = [ctypes.c_char_p]
+                imgui_lib.SendImGuiAction(msg.encode('utf-8'))
+        except:
+            pass
+
 class ImGuiHostScreen(Screen):
     # This screen covers Enigma2 with a solid black background, hiding the Plugin Browser!
     # backgroundColor="transparent" in Enigma2 means opaque black.
@@ -386,6 +412,32 @@ class ImGuiHostScreen(Screen):
         if pending:
             ref_str = pending.decode('utf-8')
             if ref_str.startswith("start_scan|"):
+                try:
+                    # Diagnostics to dump scanList to /tmp/scanlist.txt
+                    from Screens.ScanSetup import ScanSimple
+                    import Components.NimManager
+                    Components.NimManager.nimmanager.enumerateNIMs()
+                    
+                    class DummySession:
+                        postScanService = None
+                        def open(self, *args, **kwargs): pass
+                        class nav:
+                            @staticmethod
+                            def getCurrentlyPlayingServiceOrGroup(): return None
+                            
+                    s = ScanSimple(DummySession())
+                    if len(s.nim_enable) > 0:
+                        s.nim_enable[0].value = True
+                    s.buildTransponderList()
+                    
+                    with open("/tmp/scanlist.txt", "w") as f:
+                        f.write(str(s.scanList))
+                except Exception as e:
+                    import traceback
+                    with open("/tmp/scanlist.txt", "w") as f:
+                        traceback.print_exc(file=f)
+                        
+                return
                 try:
                     from Screens.ScanSetup import ScanSetup
                     self.session.open(ScanSetup)
