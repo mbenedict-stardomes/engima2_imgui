@@ -413,25 +413,33 @@ class ImGuiHostScreen(Screen):
             ref_str = pending.decode('utf-8')
             if ref_str.startswith("start_scan|"):
                 try:
-                    # Diagnostics to dump scanList to /tmp/scanlist.txt
-                    from Screens.ScanSetup import ScanSimple
-                    import Components.NimManager
-                    Components.NimManager.nimmanager.enumerateNIMs()
+                    from enigma import eDVBFrontendParametersTerrestrial, eDVBFrontendParametersSatellite, eComponentScan
+                    
+                    # For prototype, we will scan Tuner B (DVB-T2) with a mock UHF channel (e.g. 474 MHz)
+                    # Or Tuner A (DVB-S2) with 12042 MHz. Let's build a real scanList.
+                    scan_type = int(ref_str.split('|')[1])
+                    tuner_index = 1 # Assuming Tuner B (DVB-T2)
+                    
+                    tp = eDVBFrontendParametersTerrestrial()
+                    tp.frequency = 474000000 # 474 MHz
+                    tp.bandwidth = eDVBFrontendParametersTerrestrial.Bandwidth_8MHz
+                    
+                    scanList = [{
+                        "feid": tuner_index,
+                        "flags": 0,
+                        "networkid": 0,
+                        "transponders": [tp]
+                    }]
                     
                     class DummySession:
                         postScanService = None
-                        def open(self, *args, **kwargs): pass
                         class nav:
                             @staticmethod
-                            def getCurrentlyPlayingServiceOrGroup(): return None
-                            
-                    s = ScanSimple(DummySession())
-                    if len(s.nim_enable) > 0:
-                        s.nim_enable[0].value = True
-                    s.buildTransponderList()
+                            def stopService(): pass
                     
-                    with open("/tmp/scanlist.txt", "w") as f:
-                        f.write(str(s.scanList))
+                    # Instantiate headless scanner
+                    self.scanner = HeadlessServiceScan(DummySession(), scanList)
+                    self.scanner.do_scan()
                 except Exception as e:
                     import traceback
                     with open("/tmp/scanlist.txt", "w") as f:
