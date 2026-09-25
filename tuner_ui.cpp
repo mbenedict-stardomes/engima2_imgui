@@ -661,13 +661,42 @@ void TunerUI_Render() {
         ImGui::TextColored(ImVec4(0.2f, 0.6f, 1.0f, 1.0f), "ENIGMA2 NATIVE HARDWARE SCAN");
         ImGui::Separator(); ImGui::Spacing();
         
-        // Simulate scanning progress
+        // Advanced DVB-S2 vs DVB-T2 Simulation
+        static std::vector<std::string> discovered_services;
+        if (scan_progress == 0.0f) discovered_services.clear();
+        
+        bool is_terrestrial = false; // We can dynamically check the selected tuner in the future. For now, let's alternate based on scan_type
+        if (g_hardware_tuners.size() > 1) {
+            // Assume tuner B is terrestrial for the prototype if auto_tuner >= 2 or blind_tuner == 1
+            is_terrestrial = true; 
+        }
+
         if (scan_progress < 1.0f) {
-            scan_progress += 0.005f; // Approx 3-5 seconds at 60fps
-            if (scan_progress > 0.1f && scan_progress < 0.3f) current_transponder = "Tuning to 12042 MHz, H, 27500...";
-            else if (scan_progress > 0.3f && scan_progress < 0.6f) { current_transponder = "Reading PAT/PMT/SDT..."; found_channels = 12; }
-            else if (scan_progress > 0.6f && scan_progress < 0.8f) { current_transponder = "Tuning to 12188 MHz, H, 27500..."; }
-            else if (scan_progress > 0.8f && scan_progress < 1.0f) { current_transponder = "Extracting service identifiers..."; found_channels = 34; }
+            scan_progress += 0.005f; 
+            if (scan_progress > 0.1f && scan_progress < 0.3f) {
+                current_transponder = is_terrestrial ? "Tuning to UHF Ch 21 (474 MHz)..." : "Tuning to 12042 MHz, H, 27500...";
+            }
+            else if (scan_progress > 0.3f && scan_progress < 0.6f) { 
+                current_transponder = "Reading PAT/PMT/SDT..."; 
+                found_channels = 3;
+                if (discovered_services.empty()) {
+                    discovered_services.push_back(is_terrestrial ? "BBC One HD" : "Sky News HD");
+                    discovered_services.push_back(is_terrestrial ? "BBC Two HD" : "Sky Sports Main Event");
+                    discovered_services.push_back(is_terrestrial ? "CBBC HD" : "MTV Music");
+                }
+            }
+            else if (scan_progress > 0.6f && scan_progress < 0.8f) { 
+                current_transponder = is_terrestrial ? "Tuning to UHF Ch 24 (498 MHz)..." : "Tuning to 12188 MHz, H, 27500..."; 
+            }
+            else if (scan_progress > 0.8f && scan_progress < 1.0f) { 
+                current_transponder = "Extracting service identifiers..."; 
+                found_channels = 6;
+                if (discovered_services.size() == 3) {
+                    discovered_services.push_back(is_terrestrial ? "ITV1 HD" : "Discovery Channel");
+                    discovered_services.push_back(is_terrestrial ? "Channel 4 HD" : "National Geographic");
+                    discovered_services.push_back(is_terrestrial ? "Channel 5 HD" : "Comedy Central");
+                }
+            }
         } else {
             current_transponder = "Scan Complete! Writing to lamedb...";
         }
@@ -683,13 +712,24 @@ void TunerUI_Render() {
         ImGui::Spacing();
         ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.2f, 1.0f), "Services Found: %d", found_channels);
         
+        // Render the list of found services in a small scrollable box
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.02f, 0.02f, 0.05f, 1.0f));
+        ImGui::BeginChild("FoundServicesList", ImVec2(-1.0f, 100.0f), true);
+        for (const auto& srv : discovered_services) {
+            ImGui::Text(" %s", srv.c_str());
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+        
         ImGui::Spacing(); ImGui::Spacing();
         if (scan_progress >= 1.0f) {
-            if (ImGui::Button("OK - Save and Exit", ImVec2(200, 50))) {
+            ImGui::SetItemDefaultFocus(); // Ensure remote control highlights OK button!
+            if (ImGui::Button("OK - Save and Exit", ImVec2(250, 50))) {
                 is_scanning = false;
             }
         } else {
-            if (ImGui::Button("Abort Scan", ImVec2(200, 50))) {
+            ImGui::SetItemDefaultFocus();
+            if (ImGui::Button("Abort Scan", ImVec2(250, 50))) {
                 is_scanning = false;
             }
         }
