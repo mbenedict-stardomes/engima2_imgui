@@ -1,5 +1,23 @@
 #include "tuner_ui.h"
 #include <vector>
+#include <cstring>
+
+// Global scan state for IPC
+bool g_is_scanning = false;
+float g_scan_progress = 0.0f;
+int g_found_channels = 0;
+std::string g_current_transponder = "";
+std::vector<std::string> g_discovered_services;
+
+extern "C" void UpdateScanProgress(float pct, const char* status, int found, const char* service) {
+    g_scan_progress = pct;
+    g_current_transponder = status;
+    g_found_channels = found;
+    if (service && strlen(service) > 0) {
+        g_discovered_services.push_back(service);
+    }
+}
+
 #include <string>
 
 struct HardwareTuner {

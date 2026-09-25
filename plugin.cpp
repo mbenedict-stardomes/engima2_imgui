@@ -190,6 +190,15 @@ extern "C" const char* StartImGuiPlugin() {
                 }
                 
                 if (action.rfind("epg_now|", 0) == 0) {
+                    extern void UpdateEPGNow(const char* name, const char* desc);
+                    size_t p1 = action.find('|', 8);
+                    if (p1 != std::string::npos) {
+                        std::string name = action.substr(8, p1 - 8);
+                        std::string desc = action.substr(p1 + 1);
+                        UpdateEPGNow(name.c_str(), desc.c_str());
+                    }
+                    continue;
+                }
                 if (action.rfind("epg_next|", 0) == 0) {
                     extern void UpdateEPGNext(const char* name, const char* desc);
                     size_t p1 = action.find('|', 9);
