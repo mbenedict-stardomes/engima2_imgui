@@ -313,6 +313,10 @@ void TunerUI_Render() {
                 g_scan_progress = 0.0f;
                 g_found_channels = 0;
                 g_current_transponder = "Initializing hardware demodulator...";
+                
+                char scan_action[128];
+                snprintf(scan_action, sizeof(scan_action), "start_scan|%d", scan_type);
+                TriggerPlayback(scan_action);
             }
             ImGui::PopStyleColor();
             
